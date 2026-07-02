@@ -1,8 +1,11 @@
 import "dotenv/config"
 
+import { mkdirSync } from "node:fs"
+import { dirname } from "node:path"
 import { serve } from "@hono/node-server"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
+import { migrate } from "drizzle-orm/better-sqlite3/migrator"
 import { createProviderFromEnv } from "./providers/factory-provider.js"
 import { mcpConfig } from "./mcp/mcp-config.js"
 import { McpToolService } from "./mcp/mcp-tool-service.js"
@@ -11,6 +14,10 @@ import { createV1Routes } from "./routes/v1/index.js"
 import { requestLogger } from "./middleware/request-logger.js"
 import { getLogger } from "./logger/logger.js"
 import { masterAuth } from "./middleware/auth.js"
+import { createDb } from "./db/client.js"
+import { DrizzleSessionRepository } from "./db/repositories/session.repository.js"
+import { DrizzleMessageRepository } from "./db/repositories/message.repository.js"
+import { DynamicSystemPromptBuilder } from "./prompts/dynamic-system-prompt.js"
 
 function requireEnv(name: string): string {
     const value = process.env[name]
@@ -20,40 +27,50 @@ function requireEnv(name: string): string {
     return value
 }
 
-// Initialize the AI provider, model, and tool executor based on environment variables.
+const log = getLogger("server")
+
 const provider = createProviderFromEnv()
 const modelId = requireEnv("AI_MODEL")
+const databaseUrl = process.env.DATABASE_URL ?? "./data/navi.db"
+
+mkdirSync(dirname(databaseUrl), { recursive: true })
+
+const db = createDb(databaseUrl)
+migrate(db, { migrationsFolder: "./drizzle" })
+log.info({ databaseUrl }, "database migrated")
+
+const sessionRepository = new DrizzleSessionRepository(db)
+const messageRepository = new DrizzleMessageRepository(db)
 
 const toolExecutor = new McpToolService(mcpConfig.servers)
 void toolExecutor.connect()
 
-// Create the chat service with the specified provider, model, system prompt, and tool executor.
+const systemPromptBuilder = new DynamicSystemPromptBuilder({
+    basePrompt: process.env.AI_SYSTEM_PROMPT ?? "",
+    toolExecutor,
+})
+
 const chatService = new ChatService({
     provider,
     modelId,
-    systemPrompt: process.env.AI_SYSTEM_PROMPT,
     toolExecutor,
+    systemPromptBuilder,
+    sessionRepository,
+    messageRepository,
 })
 
 const app = new Hono()
 
-// Configure CORS 
 app.use("/api/v1/*", cors({
     origin: "*",
-    allowMethods: ["GET", "POST", "PATCH", "OPTIONS"],
-    allowHeaders: ["Content-Type"],
+    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
 }))
 
-// Add request logging middleware for all API routes
 app.use("/api/v1/*", requestLogger)
+app.use("/api/v1/*", masterAuth)
 
-// Add master authentication middleware for all API routes
-app.use("/api/v1/*", masterAuth) 
-
-// Mount the version 1 API routes under the "/api/v1" path
-app.route("/api/v1", createV1Routes({ chatService, toolExecutor }))
-
-const log = getLogger("server")
+app.route("/api/v1", createV1Routes({ chatService, toolExecutor, sessionRepository, messageRepository }))
 
 serve({
     fetch: app.fetch,

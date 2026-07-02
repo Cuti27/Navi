@@ -2,12 +2,17 @@ import { OpenAPIHono } from "@hono/zod-openapi"
 import { swaggerUI } from "@hono/swagger-ui"
 import type { ChatService } from "../../chat/chat-service.js"
 import type { ToolExecutor } from "../../mcp/tool-executor.js"
+import type { SessionRepository } from "../../db/repositories/session.repository.js"
+import type { MessageRepository } from "../../db/repositories/message.repository.js"
 import { createChatRoute } from "./chat.route.js"
 import { createMcpRoute } from "./mcp.route.js"
+import { createSessionRoute } from "./session.route.js"
 
 export interface V1RoutesOptions {
     chatService: ChatService
     toolExecutor: ToolExecutor
+    sessionRepository: SessionRepository
+    messageRepository: MessageRepository
 }
 
 export function createV1Routes(options: V1RoutesOptions) {
@@ -15,6 +20,7 @@ export function createV1Routes(options: V1RoutesOptions) {
 
     app.route("/", createChatRoute(options.chatService))
     app.route("/", createMcpRoute(options.toolExecutor))
+    app.route("/", createSessionRoute(options.sessionRepository, options.messageRepository))
 
     app.doc("/openapi.json", {
         openapi: "3.0.0",

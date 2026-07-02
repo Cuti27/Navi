@@ -2,6 +2,7 @@ import { z, OpenAPIHono, createRoute } from "@hono/zod-openapi"
 import type { ChatService } from "../../chat/chat-service.js"
 
 const ChatRequestSchema = z.object({
+    sessionId: z.string().uuid("sessionId is required"),
     message: z.string().min(1, "Message is required"),
 }).openapi("ChatRequest")
 
@@ -31,15 +32,18 @@ export function createChatRoute(chatService: ChatService) {
                     },
                 },
             },
+            404: {
+                description: "Session not found",
+            },
         },
     })
 
     app.openapi(route, async (c) => {
-        const { message } = c.req.valid("json")
+        const { sessionId, message } = c.req.valid("json")
         // The streaming response is a plain Response, which does not match the
         // strict TypedResponse expected by OpenAPIHono. Casting is safe here
         // because the route schema documents the SSE text/plain contract.
-        return chatService.streamResponse(message) as any
+        return chatService.streamResponse(sessionId, message) as any
     })
 
     return app
