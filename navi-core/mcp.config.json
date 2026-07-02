@@ -1,0 +1,9 @@
+{
+  "servers": [
+    {
+      "name": "deepwiki",
+      "enabled": true,
+      "url": "https://mcp.deepwiki.com/mcp"
+    }
+  ]
+}
