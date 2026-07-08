@@ -7,7 +7,7 @@ export interface SessionRepository {
     create(input: NewSession): Promise<Session>
     getById(id: string): Promise<Session | undefined>
     list(): Promise<Session[]>
-    update(id: string, data: Partial<Pick<Session, "title" | "contextSummary">>): Promise<void>
+    update(id: string, data: Partial<Pick<Session, "title" | "contextSummary" | "lastCompactedMessageId">>): Promise<void>
     delete(id: string): Promise<void>
 }
 
@@ -38,7 +38,7 @@ export class DrizzleSessionRepository implements SessionRepository {
 
     async update(
         id: string,
-        data: Partial<Pick<Session, "title" | "contextSummary">>
+        data: Partial<Pick<Session, "title" | "contextSummary" | "lastCompactedMessageId">>
     ): Promise<void> {
         await this.db
             .update(sessions)

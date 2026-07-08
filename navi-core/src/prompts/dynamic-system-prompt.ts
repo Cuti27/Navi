@@ -5,6 +5,7 @@ import type { ToolExecutor } from "../mcp/tool-executor.js"
 export interface DynamicSystemPromptOptions {
     basePrompt: string
     toolExecutor: ToolExecutor
+    memoryToolNames?: string[]
 }
 
 export class DynamicSystemPromptBuilder implements SystemPromptBuilder {
@@ -23,7 +24,7 @@ export class DynamicSystemPromptBuilder implements SystemPromptBuilder {
         const ips = this.getLocalIps()
         const services = this.options.toolExecutor.getActiveServices()
 
-        return [
+        const sections = [
             this.options.basePrompt,
             "",
             "## Contexto temporal y de entorno",
@@ -37,7 +38,24 @@ export class DynamicSystemPromptBuilder implements SystemPromptBuilder {
             "Cualquier herramienta que pueda modificar el estado del sistema requiere aprobación explícita del usuario.",
             "Si el usuario rechaza una herramienta, NO la reintentes. Informa del rechazo y ofrece alternativas si procede.",
             "Las herramientas de solo lectura están permitidas sin confirmación adicional.",
-        ].join("\n")
+        ]
+
+        const memoryToolNames = this.options.memoryToolNames
+        if (memoryToolNames && memoryToolNames.length > 0) {
+            sections.push(
+                "",
+                "## Memoria a largo plazo",
+                "Dispones de un sistema de memoria persistente implementado como ficheros markdown editables.",
+                `Herramientas de memoria disponibles: ${memoryToolNames.join(", ")}.`,
+                "- Cuando el usuario comparta una preferencia, hecho o instrucción que deba recordarse entre sesiones (por ejemplo: 'recuerda que...', 'mi setup tiene...'), usa `memory_save` con un título claro y una categoría apropiada.",
+                "- Antes de responder sobre configuraciones, preferencias o detalles técnicos del usuario, usa `memory_search` para recuperar contexto relevante.",
+                "- Usa `memory_list` para dar al usuario un resumen de lo recordado cuando te lo pida.",
+                "- `memory_save` y `memory_update` escriben ficheros; requieren aprobación explícita. No guardes trivialidades ni información sensible.",
+                "- `memory_search` y `memory_list` son de solo lectura y se ejecutan sin confirmación adicional."
+            )
+        }
+
+        return sections.join("\n")
     }
 
     private getLocalIps(): string[] {

@@ -15,6 +15,13 @@
       "when": 1783453874501,
       "tag": "0001_futuristic_kulan_gath",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783532189388,
+      "tag": "0002_whole_tiger_shark",
+      "breakpoints": true
     }
   ]
 }

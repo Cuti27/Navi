@@ -14,6 +14,8 @@ import type { MessageRepository } from "../db/repositories/message.repository.js
 import type { ApprovalRepository } from "../db/repositories/approval.repository.js"
 import type { Message, NewMessage } from "../db/schema.js"
 import { getLogger } from "../logger/logger.js"
+import type { CompactionService } from "./compaction-service.js"
+import type { MemoryContextBuilder } from "../memory/memory-context.js"
 
 export interface ChatServiceOptions {
     provider: AIProvider
@@ -23,6 +25,10 @@ export interface ChatServiceOptions {
     sessionRepository: SessionRepository
     messageRepository: MessageRepository
     approvalRepository: ApprovalRepository
+    compactionService?: CompactionService
+    memoryTools?: Record<string, Tool>
+    readOnlyToolNames?: Set<string>
+    memoryContextBuilder?: MemoryContextBuilder
     maxHistoryMessages?: number
 }
 
@@ -53,7 +59,7 @@ export class ChatService {
      * 6. Al terminar el stream, persiste los responseMessages del SDK.
      */
     async streamResponse(sessionId: string, userMessage: string): Promise<Response> {
-        const { sessionRepository, messageRepository } = this.options
+        const { sessionRepository, messageRepository, compactionService } = this.options
 
         const session = await sessionRepository.getById(sessionId)
         if (!session) {
@@ -70,7 +76,9 @@ export class ChatService {
             content: userMessage,
         })
 
-        const messages = await this.loadMessages(sessionId)
+        await compactionService?.checkAndCompact(sessionId)
+
+        const messages = await this.buildContext(sessionId)
         return this.createSseResponse(sessionId, messages)
     }
 
@@ -159,17 +167,41 @@ export class ChatService {
             "approval responses recorded, resuming stream"
         )
 
-        const messages = await this.loadMessages(sessionId)
+        const messages = await this.buildContext(sessionId)
         return this.createSseResponse(sessionId, messages)
     }
 
-    private async loadMessages(sessionId: string): Promise<ModelMessage[]> {
-        const { messageRepository, maxHistoryMessages = 20 } = this.options
+    private async buildContext(sessionId: string): Promise<ModelMessage[]> {
+        const { messageRepository, sessionRepository, maxHistoryMessages = 20, memoryContextBuilder } =
+            this.options
+
+        const session = await sessionRepository.getById(sessionId)
         const historyMessages = await messageRepository.listBySessionChronological(
             sessionId,
             maxHistoryMessages
         )
-        return this.buildMessages(historyMessages)
+        const coreMessages = this.buildMessages(historyMessages)
+
+        const systemExtras: ModelMessage[] = []
+
+        if (session?.contextSummary) {
+            systemExtras.push({
+                role: "system",
+                content: `## Resumen previo de la conversación\n\n${session.contextSummary}`,
+            })
+        }
+
+        if (memoryContextBuilder) {
+            const lastUserMessage = [...historyMessages].reverse().find((m) => m.role === "user")
+            if (lastUserMessage) {
+                const memoryContext = await memoryContextBuilder.build(lastUserMessage.content)
+                if (memoryContext) {
+                    systemExtras.push({ role: "system", content: memoryContext })
+                }
+            }
+        }
+
+        return [...systemExtras, ...coreMessages]
     }
 
     private createSseResponse(sessionId: string, messages: ModelMessage[]): Response {
@@ -202,11 +234,19 @@ export class ChatService {
         controller: ReadableStreamDefaultController<Uint8Array>,
         encoder: TextEncoder
     ): Promise<void> {
-        const { provider, modelId, toolExecutor, systemPromptBuilder, approvalRepository } =
-            this.options
+        const {
+            provider,
+            modelId,
+            toolExecutor,
+            systemPromptBuilder,
+            approvalRepository,
+            memoryTools,
+            readOnlyToolNames,
+        } = this.options
 
-        const tools = await toolExecutor?.getEnabledTools()
-        const toolsNames = tools ? Object.keys(tools) : []
+        const mcpTools = (await toolExecutor?.getEnabledTools()) ?? {}
+        const tools: Record<string, Tool> = { ...mcpTools, ...(memoryTools ?? {}) }
+        const toolsNames = Object.keys(tools)
 
         log.info({ toolsCount: toolsNames.length }, "tools passed to LLM")
         log.debug({ toolsNames }, "enabled tools")
@@ -220,7 +260,10 @@ export class ChatService {
             tools,
             stopWhen: isStepCount(5),
             toolApproval: ({ toolCall }) => {
-                if (toolExecutor?.isToolReadOnly(toolCall.toolName)) {
+                if (
+                    toolExecutor?.isToolReadOnly(toolCall.toolName) ||
+                    readOnlyToolNames?.has(toolCall.toolName)
+                ) {
                     log.debug({ tool: toolCall.toolName }, "auto-approving read-only tool")
                     return "approved"
                 }

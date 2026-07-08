@@ -7,6 +7,7 @@ export interface MessageRepository {
     create(input: NewMessage): Promise<Message>
     listBySession(sessionId: string, limit?: number): Promise<Message[]>
     listBySessionChronological(sessionId: string, limit?: number): Promise<Message[]>
+    listAllBySessionChronological(sessionId: string): Promise<Message[]>
 }
 
 export class DrizzleMessageRepository implements MessageRepository {
@@ -39,6 +40,13 @@ export class DrizzleMessageRepository implements MessageRepository {
             where: eq(messages.sessionId, sessionId),
             orderBy: [asc(messages.createdAt)],
             limit,
+        })
+    }
+
+    async listAllBySessionChronological(sessionId: string): Promise<Message[]> {
+        return this.db.query.messages.findMany({
+            where: eq(messages.sessionId, sessionId),
+            orderBy: [asc(messages.createdAt)],
         })
     }
 }
