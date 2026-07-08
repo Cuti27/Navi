@@ -8,6 +8,11 @@ export interface McpServerConfig {
     enabled?: boolean
     url: string
     headers?: Record<string, string>
+    /**
+     * Tool names that should be considered read-only and therefore auto-approved.
+     * Useful when the MCP server does not publish `annotations.readOnlyHint`.
+     */
+    autoApproveTools?: string[]
 }
 
 /**

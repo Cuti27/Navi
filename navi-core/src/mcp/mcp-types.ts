@@ -17,4 +17,9 @@ export interface AvailableTool {
     description?: string
     serverName: string
     enabled: boolean
+    /**
+     * Whether the tool claims to be read-only according to the MCP server
+     * annotations. Falls back to false when the server does not publish it.
+     */
+    readOnlyHint?: boolean
 }

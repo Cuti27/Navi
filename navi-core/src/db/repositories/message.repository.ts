@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm"
+import { eq, desc, asc } from "drizzle-orm"
 import type { DB } from "../client.js"
 import { messages } from "../schema.js"
 import type { Message, NewMessage } from "../schema.js"
@@ -6,6 +6,7 @@ import type { Message, NewMessage } from "../schema.js"
 export interface MessageRepository {
     create(input: NewMessage): Promise<Message>
     listBySession(sessionId: string, limit?: number): Promise<Message[]>
+    listBySessionChronological(sessionId: string, limit?: number): Promise<Message[]>
 }
 
 export class DrizzleMessageRepository implements MessageRepository {
@@ -26,6 +27,17 @@ export class DrizzleMessageRepository implements MessageRepository {
         return this.db.query.messages.findMany({
             where: eq(messages.sessionId, sessionId),
             orderBy: [desc(messages.createdAt)],
+            limit,
+        })
+    }
+
+    async listBySessionChronological(
+        sessionId: string,
+        limit = 100
+    ): Promise<Message[]> {
+        return this.db.query.messages.findMany({
+            where: eq(messages.sessionId, sessionId),
+            orderBy: [asc(messages.createdAt)],
             limit,
         })
     }

@@ -30,6 +30,7 @@ const MessageSchema = z.object({
     content: z.string(),
     imageUrl: z.string().nullable().optional(),
     toolCalls: z.unknown().optional(),
+    parts: z.unknown().optional(),
     createdAt: z.date(),
 }).openapi("Message")
 

@@ -3,7 +3,12 @@
     {
       "name": "deepwiki",
       "enabled": true,
-      "url": "https://mcp.deepwiki.com/mcp"
+      "url": "https://mcp.deepwiki.com/mcp",
+      "autoApproveTools": [
+        "read_wiki_structure",
+        "read_wiki_contents",
+        "ask_question"
+      ]
     }
   ]
 }

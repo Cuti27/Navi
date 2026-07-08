@@ -92,6 +92,30 @@
             cursor: not-allowed;
         }
 
+        button.secondary {
+            background: #3f3f46;
+        }
+
+        button.secondary:hover {
+            background: #52525b;
+        }
+
+        button.danger {
+            background: #ef4444;
+        }
+
+        button.danger:hover {
+            background: #dc2626;
+        }
+
+        button.success {
+            background: #22c55e;
+        }
+
+        button.success:hover {
+            background: #16a34a;
+        }
+
         .panel {
             background: #27272a;
             border-radius: .5rem;
@@ -150,6 +174,47 @@
             border: 1px solid #3f3f46;
         }
 
+        .message.tool {
+            align-self: flex-start;
+            background: #1e1b2e;
+            color: #c4b5fd;
+            border: 1px solid #4c1d95;
+            font-size: .8125rem;
+        }
+
+        .approval-card {
+            align-self: flex-start;
+            max-width: 90%;
+            background: #1c1917;
+            border: 1px solid #f59e0b;
+            border-radius: .75rem;
+            padding: .75rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: .5rem;
+        }
+
+        .approval-card h3 {
+            font-size: .875rem;
+            color: #fbbf24;
+        }
+
+        .approval-card pre {
+            background: #0f0f11;
+            border: 1px solid #3f3f46;
+            border-radius: .375rem;
+            padding: .5rem;
+            font-size: .75rem;
+            overflow-x: auto;
+            max-height: 120px;
+            cursor: pointer;
+        }
+
+        .approval-card .actions {
+            display: flex;
+            gap: .5rem;
+        }
+
         .input-area {
             display: flex;
             gap: .5rem;
@@ -171,6 +236,30 @@
 
         small {
             color: #a1a1aa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: .125rem .375rem;
+            border-radius: .25rem;
+            font-size: .6875rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .badge.pending {
+            background: #78350f;
+            color: #fbbf24;
+        }
+
+        .badge.approved {
+            background: #14532d;
+            color: #86efac;
+        }
+
+        .badge.denied {
+            background: #7f1d1d;
+            color: #fca5a5;
         }
     </style>
 </head>
@@ -201,7 +290,7 @@
                 <ul id="servicesList" class="list"></ul>
                 <button id="loadTools" style="margin-top:.5rem">Cargar tools</button>
                 <ul id="toolsList" class="list"></ul>
-                </div>
+            </div>
         </aside>
 
         <main class="main">
@@ -217,18 +306,19 @@
     </div>
 
     <script>
-            const $ = id => document.getElementById(id);
-            let selectedSessionId = null;
+        const $ = id => document.getElementById(id);
+        let selectedSessionId = null;
+        let currentAssistantBubble = null;
 
-            function headers() {
-                return {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + $('masterToken').value
-                };
-            }
+        function headers() {
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + $('masterToken').value
+            };
+        }
 
-            function api(path) {
-                return $('apiBase').value.replace(/\/$/, '') + path;
+        function api(path) {
+            return $('apiBase').value.replace(/\/$/, '') + path;
         }
 
         async function getJson(path) {
@@ -241,23 +331,153 @@
             return fetch(api(path), { method: 'POST', headers: headers(), body: JSON.stringify(body) });
         }
 
-            function escapeHtml(t) {
-                const d = document.createElement('div');
-                d.textContent = t;
-                return d.innerHTML;
+        function escapeHtml(t) {
+            const d = document.createElement('div');
+            d.textContent = t;
+            return d.innerHTML;
         }
 
-            function addMessage(role, text) {
-                const d = document.createElement('div');
-                d.className = 'message ' + role;
-                d.textContent = text;
-                $('messages').appendChild(d);
-                $('messages').scrollTop = $('messages').scrollHeight;
-                return d;
+        function addMessage(role, text) {
+            const d = document.createElement('div');
+            d.className = 'message ' + role;
+            d.textContent = text;
+            $('messages').appendChild(d);
+            $('messages').scrollTop = $('messages').scrollHeight;
+            return d;
         }
 
-            async function loadSessions() {
-                $('sessionsList').innerHTML = '<li>Cargando...</li>';
+        function addApprovalCard(payload) {
+            const card = document.createElement('div');
+            card.className = 'approval-card';
+            card.dataset.approvalId = payload.approvalId;
+            card.dataset.toolCallId = payload.toolCallId;
+
+            const title = document.createElement('h3');
+            title.textContent = payload.description || payload.toolName;
+            card.appendChild(title);
+
+            const meta = document.createElement('div');
+            meta.innerHTML = `<small><strong>${escapeHtml(payload.toolName)}</strong> · ${escapeHtml(payload.toolCallId)}</small>`;
+            card.appendChild(meta);
+
+            const json = document.createElement('pre');
+            json.textContent = JSON.stringify(payload.input, null, 2);
+            json.title = 'Click para expandir/contraer';
+            json.onclick = () => {
+                json.style.maxHeight = json.style.maxHeight === 'none' ? '120px' : 'none';
+            };
+            card.appendChild(json);
+
+            const status = document.createElement('div');
+            status.innerHTML = '<span class="badge pending">Pendiente</span>';
+            card.appendChild(status);
+
+            const actions = document.createElement('div');
+            actions.className = 'actions';
+
+            const approveBtn = document.createElement('button');
+            approveBtn.className = 'success';
+            approveBtn.textContent = 'Autorizar';
+            approveBtn.onclick = () => submitApprovals([{ approvalId: payload.approvalId, approved: true }], card);
+
+            const denyBtn = document.createElement('button');
+            denyBtn.className = 'danger';
+            denyBtn.textContent = 'Cancelar';
+            denyBtn.onclick = () => submitApprovals([{ approvalId: payload.approvalId, approved: false, reason: 'Cancelado por el usuario' }], card);
+
+            actions.appendChild(approveBtn);
+            actions.appendChild(denyBtn);
+            card.appendChild(actions);
+
+            $('messages').appendChild(card);
+            $('messages').scrollTop = $('messages').scrollHeight;
+            return card;
+        }
+
+        async function submitApprovals(responses, cardOrCards) {
+            if (!selectedSessionId) return alert('Selecciona una sesión');
+            const cards = Array.isArray(cardOrCards) ? cardOrCards : [cardOrCards];
+            cards.forEach(c => {
+                const actions = c.querySelector('.actions');
+                if (actions) actions.innerHTML = '<small>Procesando...</small>';
+            });
+
+            try {
+                const r = await postJson('/chat/approvals', { sessionId: selectedSessionId, responses });
+                if (!r.ok || !r.body) throw new Error(r.status + ': ' + await r.text());
+                await consumeSse(r.body, cards);
+            } catch (err) {
+                cards.forEach(c => {
+                    const actions = c.querySelector('.actions');
+                    if (actions) actions.innerHTML = '<span class="error">Error: ' + escapeHtml(err.message) + '</span>';
+                });
+            }
+        }
+
+        async function consumeSse(body, resolvedCards = []) {
+            const reader = body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let currentEvent = null;
+            currentAssistantBubble = null;
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (line.startsWith('event: ')) {
+                        currentEvent = line.slice(7).trim();
+                    } else if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        if (currentEvent === null) {
+                            // Legacy text event: just append to assistant bubble
+                            if (!currentAssistantBubble) {
+                                currentAssistantBubble = addMessage('assistant', '');
+                            }
+                            currentAssistantBubble.textContent += data;
+                            $('messages').scrollTop = $('messages').scrollHeight;
+                        } else if (currentEvent === 'tool-approval-request') {
+                            const payload = JSON.parse(data);
+                            addApprovalCard(payload);
+                            currentEvent = null;
+                        } else if (currentEvent === 'tool-result') {
+                            const payload = JSON.parse(data);
+                            addMessage('tool', `[tool-result] ${payload.toolName}\n${JSON.stringify(payload.output, null, 2)}`);
+                            currentEvent = null;
+                        } else if (currentEvent === 'tool-output-denied') {
+                            const payload = JSON.parse(data);
+                            addMessage('tool', `[tool-output-denied] ${payload.toolCallId}`);
+                            currentEvent = null;
+                        } else if (currentEvent === 'done') {
+                            const payload = JSON.parse(data);
+                            if (payload.reason === 'awaiting-approval') {
+                                // Stream paused for approvals; nothing else to do here.
+                            }
+                            currentEvent = null;
+                        } else {
+                            currentEvent = null;
+                        }
+                    } else if (line.trim() === '') {
+                        currentEvent = null;
+                    }
+                }
+            }
+
+            // Mark resolved cards
+            resolvedCards.forEach(card => {
+                const actions = card.querySelector('.actions');
+                const badge = card.querySelector('.badge');
+                if (badge) badge.remove();
+                if (actions) actions.remove();
+            });
+        }
+
+        async function loadSessions() {
+            $('sessionsList').innerHTML = '<li>Cargando...</li>';
             try {
                 const sessions = await getJson('/sessions');
                 $('sessionsList').innerHTML = '';
@@ -274,20 +494,26 @@
             }
         }
 
-            async function selectSession(id, title) {
-                selectedSessionId = id;
-                $('currentSession').textContent = title;
-                $('messages').innerHTML = '';
-                document.querySelectorAll('#sessionsList li').forEach(li => li.classList.toggle('active', li.dataset.id === id));
-                try {
-                    const data = await getJson('/sessions/' + id);
-                    data.messages.slice().reverse().forEach(m => addMessage(m.role, m.content));
-                } catch (e) {
-                    addMessage('assistant', 'Error cargando historial: ' + e.message);
+        async function selectSession(id, title) {
+            selectedSessionId = id;
+            $('currentSession').textContent = title;
+            $('messages').innerHTML = '';
+            document.querySelectorAll('#sessionsList li').forEach(li => li.classList.toggle('active', li.dataset.id === id));
+            try {
+                const data = await getJson('/sessions/' + id);
+                data.messages.slice().reverse().forEach(m => {
+                    if (m.role === 'tool') {
+                        addMessage('tool', `[tool] ${m.content}`);
+                    } else {
+                        addMessage(m.role, m.content);
+                    }
+                });
+            } catch (e) {
+                addMessage('assistant', 'Error cargando historial: ' + e.message);
             }
         }
 
-            $('createSession').onclick = async () => {
+        $('createSession').onclick = async () => {
             try {
                 const body = {};
                 const title = $('sessionTitle').value.trim();
@@ -303,9 +529,9 @@
             }
         };
 
-            $('loadServices').onclick = async () => {
-                $('servicesList').innerHTML = '<li>Cargando...</li>';
-                try {
+        $('loadServices').onclick = async () => {
+            $('servicesList').innerHTML = '<li>Cargando...</li>';
+            try {
                 const services = await getJson('/mcp/services');
                 $('servicesList').innerHTML = '';
                 services.forEach(s => {
@@ -318,14 +544,15 @@
             }
         };
 
-            $('loadTools').onclick = async () => {
-                $('toolsList').innerHTML = '<li>Cargando...</li>';
+        $('loadTools').onclick = async () => {
+            $('toolsList').innerHTML = '<li>Cargando...</li>';
             try {
                 const tools = await getJson('/mcp/tools');
                 $('toolsList').innerHTML = '';
                 tools.forEach(t => {
                     const li = document.createElement('li');
-                    li.innerHTML = '<strong>' + escapeHtml(t.name) + '</strong> (' + (t.enabled ? 'on' : 'off') + ')<br><small>' + escapeHtml(t.serverName || '') + '</small>';
+                    const readOnly = t.readOnlyHint ? ' · read-only' : '';
+                    li.innerHTML = '<strong>' + escapeHtml(t.name) + '</strong> (' + (t.enabled ? 'on' : 'off') + ')' + readOnly + '<br><small>' + escapeHtml(t.serverName || '') + '</small>';
                     $('toolsList').appendChild(li);
                 });
             } catch (e) {
@@ -333,40 +560,23 @@
             }
         };
 
-            $('chatForm').onsubmit = async e => {
-                e.preventDefault();
-                if (!selectedSessionId) return alert('Selecciona o crea una sesión primero');
-                const msg = $('messageInput').value.trim();
-                if (!msg) return;
-                $('messageInput').value = '';
-                addMessage('user', msg);
-                const assistant = addMessage('assistant', '');
-                try {
-                    const r = await postJson('/chat', { sessionId: selectedSessionId, message: msg });
-                    if (!r.ok || !r.body) throw new Error(r.status + ': ' + await r.text());
-                    const reader = r.body.getReader();
-                    const decoder = new TextDecoder();
-                    let buffer = '';
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || '';
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            assistant.textContent += line.slice(6);
-                            $('messages').scrollTop = $('messages').scrollHeight;
-                        }
-                    }
-                }
+        $('chatForm').onsubmit = async e => {
+            e.preventDefault();
+            if (!selectedSessionId) return alert('Selecciona o crea una sesión primero');
+            const msg = $('messageInput').value.trim();
+            if (!msg) return;
+            $('messageInput').value = '';
+            addMessage('user', msg);
+            try {
+                const r = await postJson('/chat', { sessionId: selectedSessionId, message: msg });
+                if (!r.ok || !r.body) throw new Error(r.status + ': ' + await r.text());
+                await consumeSse(r.body);
             } catch (err) {
-                assistant.textContent = 'Error: ' + err.message;
-                assistant.classList.add('error');
+                addMessage('assistant', 'Error: ' + err.message).classList.add('error');
             }
         };
 
-            loadSessions();
+        loadSessions();
     </script>
 </body>
 

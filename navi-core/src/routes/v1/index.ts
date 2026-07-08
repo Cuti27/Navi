@@ -5,6 +5,7 @@ import type { ToolExecutor } from "../../mcp/tool-executor.js"
 import type { SessionRepository } from "../../db/repositories/session.repository.js"
 import type { MessageRepository } from "../../db/repositories/message.repository.js"
 import { createChatRoute } from "./chat.route.js"
+import { createApprovalRoute } from "./approval.route.js"
 import { createMcpRoute } from "./mcp.route.js"
 import { createSessionRoute } from "./session.route.js"
 
@@ -19,6 +20,7 @@ export function createV1Routes(options: V1RoutesOptions) {
     const app = new OpenAPIHono()
 
     app.route("/", createChatRoute(options.chatService))
+    app.route("/", createApprovalRoute(options.chatService))
     app.route("/", createMcpRoute(options.toolExecutor))
     app.route("/", createSessionRoute(options.sessionRepository, options.messageRepository))
 

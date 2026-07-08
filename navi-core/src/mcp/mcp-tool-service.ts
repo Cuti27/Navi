@@ -69,6 +69,7 @@ export class McpToolService implements ToolExecutor {
                 description: t.description,
                 serverName: connection.config.name,
                 enabled: true,
+                readOnlyHint: readOnlyHintFromAnnotations(t.annotations),
             }))
             connection.enabledTools = convertedTools as Record<string, Tool>
 
@@ -139,4 +140,30 @@ export class McpToolService implements ToolExecutor {
 
         throw new Error(`Tool not found: ${name}`)
     }
+
+    isToolReadOnly(name: string): boolean {
+        for (const connection of this.connections) {
+            const tool = connection.availableTools.find((t) => t.name === name)
+            if (!tool) continue
+
+            if (tool.readOnlyHint) return true
+            if (connection.config.autoApproveTools?.includes(name)) return true
+            return false
+        }
+
+        return false
+    }
+}
+
+function readOnlyHintFromAnnotations(
+    annotations: unknown
+): boolean | undefined {
+    if (
+        annotations &&
+        typeof annotations === "object" &&
+        "readOnlyHint" in annotations
+    ) {
+        return Boolean(annotations.readOnlyHint)
+    }
+    return undefined
 }

@@ -32,6 +32,11 @@ export class DynamicSystemPromptBuilder implements SystemPromptBuilder {
             `Hostname: ${host}`,
             `IPs locales: ${ips.join(", ") || "no detectadas"}`,
             `Servicios MCP disponibles: ${services.map((s) => s.name).join(", ") || "ninguno"}`,
+            "",
+            "## Política de ejecución de herramientas (HITL)",
+            "Cualquier herramienta que pueda modificar el estado del sistema requiere aprobación explícita del usuario.",
+            "Si el usuario rechaza una herramienta, NO la reintentes. Informa del rechazo y ofrece alternativas si procede.",
+            "Las herramientas de solo lectura están permitidas sin confirmación adicional.",
         ].join("\n")
     }
 

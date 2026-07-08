@@ -23,6 +23,7 @@ const AvailableToolSchema = z.object({
     description: z.string().optional(),
     serverName: z.string(),
     enabled: z.boolean(),
+    readOnlyHint: z.boolean().optional(),
 }).openapi("AvailableTool")
 
 const McpToolsResponseSchema = z.array(AvailableToolSchema).openapi("McpToolsResponse")

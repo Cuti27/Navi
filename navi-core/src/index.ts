@@ -17,6 +17,7 @@ import { masterAuth } from "./middleware/auth.js"
 import { createDb } from "./db/client.js"
 import { DrizzleSessionRepository } from "./db/repositories/session.repository.js"
 import { DrizzleMessageRepository } from "./db/repositories/message.repository.js"
+import { DrizzleApprovalRepository } from "./db/repositories/approval.repository.js"
 import { DynamicSystemPromptBuilder } from "./prompts/dynamic-system-prompt.js"
 
 function requireEnv(name: string): string {
@@ -41,6 +42,7 @@ log.info({ databaseUrl }, "database migrated")
 
 const sessionRepository = new DrizzleSessionRepository(db)
 const messageRepository = new DrizzleMessageRepository(db)
+const approvalRepository = new DrizzleApprovalRepository(db)
 
 const toolExecutor = new McpToolService(mcpConfig.servers)
 void toolExecutor.connect()
@@ -57,6 +59,7 @@ const chatService = new ChatService({
     systemPromptBuilder,
     sessionRepository,
     messageRepository,
+    approvalRepository,
 })
 
 const app = new Hono()

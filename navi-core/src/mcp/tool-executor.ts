@@ -32,4 +32,10 @@ export interface ToolExecutor {
      * Enables or disables a specific tool by name (runtime only, in memory).
      */
     setToolEnabled(name: string, enabled: boolean): void
+
+    /**
+     * Returns true if the tool is considered read-only and can be auto-approved.
+     * Falls back to false if the tool is not known.
+     */
+    isToolReadOnly(name: string): boolean
 }
