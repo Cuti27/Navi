@@ -3,6 +3,7 @@ import type { UIMessage, ApprovalPayload, ToolSummaryCall } from '~/lib/types'
 export function useSseChat() {
   const api = useNaviApi()
   const agent = useAgentStore()
+  const feedback = usePwaFeedback()
 
   const messages = ref<UIMessage[]>([])
   const isStreaming = ref(false)
@@ -200,6 +201,11 @@ export function useSseChat() {
           signature: payload.signature,
         })
         agent.setState('awaiting-approval')
+        feedback.notify({
+          title: 'Navi solicita aprobación',
+          body: payload.description || `Navi quiere ejecutar '${payload.toolName}'`,
+          tag: `approval-${payload.approvalId}`,
+        })
       } catch {
         // ignore malformed event
       }

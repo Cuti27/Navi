@@ -11,7 +11,7 @@ Este repositorio es un workspace de pnpm con dos paquetes principales:
 | Paquete | Descripción | Tecnologías |
 |---|---|---|
 | [`navi-core/`](./navi-core/README.md) | Backend de orquestación, IA, memoria y herramientas MCP. | Hono, Node.js, Vercel AI SDK, Drizzle ORM, SQLite |
-| [`frontend/`](./frontend/README.md) | Interfaz de usuario web (y potencialmente escritorio/móvil vía Tauri). | Nuxt 3, Tailwind v4, shadcn-nuxt, Pinia |
+| [`frontend/`](./frontend/README.md) | Interfaz de usuario web y PWA instalable en iOS, Android y escritorio; preparada también para Tauri v2 en el futuro. | Nuxt 3, Tailwind v4, shadcn-nuxt, Pinia, @vite-pwa/nuxt |
 
 ## Requisitos previos
 
@@ -57,6 +57,10 @@ pnpm test:e2e
 ```
 
 Consulta [`AGENTS.md`](./AGENTS.md) para la lista completa de comandos y convenciones del proyecto.
+
+## PWA
+
+El frontend se distribuye como Progressive Web App. Se instala directamente desde el navegador sin necesidad de App Store ni Developer Program. Consulta [`frontend/README.md`](./frontend/README.md#pwa-progressive-web-app) para las instrucciones de instalación en cada plataforma.
 
 ## Desarrollo
 
