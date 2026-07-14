@@ -138,7 +138,7 @@ The layout philosophy follows a **Fluid Grid** with strict adherence to a 4px ba
 
 - **Structure:** A 12-column grid for desktop and a 4-column grid for mobile. 
 - **Density:** Information density should be moderate. Use generous margins (#xl) to separate major sections like "Agent Interaction" and "Server Health," but use tight padding (#sm) within technical data tables.
-- **Hierarchy:** Content flows vertically on mobile, but utilizes a "Command Center" layout on desktop with a fixed-width left sidebar for navigation and a primary central area for the AI agent conversation and system logs.
+- **Hierarchy:** Content flows vertically on mobile, but utilizes a "Command Center" layout on desktop (`md:` breakpoint and up). The left column displays the Navi agent avatar at a prominent size (`md:w-1/2 md:max-w-[520px]`), while the right column contains the primary content: the session list on the home screen or the conversation and composer on the chat screen.
 
 ## Elevation & Depth
 
