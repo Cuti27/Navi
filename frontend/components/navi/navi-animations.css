@@ -1,0 +1,172 @@
+/* ════════════════════════════════════════
+   STATE ANIMATIONS (continuous, triggered by .is-* class)
+   ════════════════════════════════════════ */
+
+/* Ring rotation — use for any circular spin animation */
+@keyframes navi-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Reverse ring rotation — for compacting / undo actions */
+@keyframes navi-spin-reverse {
+  to { transform: rotate(-360deg); }
+}
+
+/* Orbital node arc — rotates all nodes 180° then pauses.
+   Total 16s: 6.4s rotate → 2.4s hold → 5.6s rotate back → 1.6s hold.
+   Use for thinking / processing states. */
+@keyframes navi-nodes-orbit {
+  0% { transform: rotate(0deg); }
+  40% { transform: rotate(180deg); }
+  55% { transform: rotate(180deg); }
+  90% { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Gentle opacity pulse — use for subtle breathing / idle presence */
+@keyframes navi-idle-ring {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+/* Scale + opacity pulse — use for heartbeat / core emphasis */
+@keyframes navi-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.92); opacity: 0.8; }
+}
+
+/* Expand-contract scale — use for deep breathing / meditation */
+@keyframes navi-breathe {
+  0%, 100% { transform: scale(0.9); }
+  50% { transform: scale(1.05); }
+}
+
+/* Faint scale + opacity — use for orbital node waiting pulses */
+@keyframes navi-node-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* Strong pop scale — use for burst / node activation */
+@keyframes navi-node-pop {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+}
+
+/* Opacity blink — use for ring / border alert blinking */
+@keyframes navi-blink-ring {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Fade out — use for dimming / standby state */
+@keyframes navi-dim {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Horizontal jitter — use for error / rejection feedback */
+@keyframes navi-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-3px); }
+  40% { transform: translateX(3px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
+/* ════════════════════════════════════════
+   RANDOM-TRIGGERED ANIMATIONS (fired via JS timer, one-shot)
+   ════════════════════════════════════════ */
+
+/* Eye blink — squashes eyes vertically from their center.
+   Use with wrapper elements that have transform-origin: center.
+   Params: duration 0.7s, hold open 0-25%, close 25-45%, open 55-75% */
+@keyframes navi-blink {
+  0%, 25% { transform: scaleY(1); }
+  45% { transform: scaleY(0.1); }
+  55% { transform: scaleY(0.1); }
+  75%, 100% { transform: scaleY(1); }
+}
+
+/* Right-arm wave — traces an arc to the right, then up, waves at peak, returns.
+   Pivot at shoulder (50% 0%). Translate goes right (+20px mid-arc) then back to 0 at peak.
+   Rotate up to -50°, wave oscillates -45°/-55°.
+   Use for greeting / acknowledgement gestures. */
+@keyframes navi-wave-right {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  20% {
+    transform: translate(14px, -12px) rotate(-12deg);
+  }
+  35% {
+    transform: translate(20px, -35px) rotate(-28deg);
+  }
+  42% {
+    transform: translate(10px, -55px) rotate(-38deg);
+  }
+  48% {
+    transform: translate(0, -80px) rotate(-50deg);
+  }
+  52% {
+    transform: translate(-5px, -83px) rotate(-45deg);
+  }
+  56% {
+    transform: translate(5px, -83px) rotate(-55deg);
+  }
+  60% {
+    transform: translate(-5px, -83px) rotate(-45deg);
+  }
+  64% {
+    transform: translate(5px, -83px) rotate(-55deg);
+  }
+  68% {
+    transform: translate(0, -83px) rotate(-50deg);
+  }
+  76% {
+    transform: translate(10px, -55px) rotate(-38deg);
+  }
+  82% {
+    transform: translate(20px, -35px) rotate(-28deg);
+  }
+  90% {
+    transform: translate(14px, -12px) rotate(-12deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+.animate-blink {
+  animation: navi-blink 0.7s ease-in-out;
+}
+
+.animate-wave {
+  animation: navi-wave-right 2.5s ease-in-out;
+}
+
+/* Arc raise — one-shot: traces the arc right→up then settles at the wave peak.
+   Use for entering awaiting-approval / any state where the arm should rise with motion. */
+@keyframes navi-wave-raise {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  20% { transform: translate(14px, -12px) rotate(-12deg); }
+  40% { transform: translate(20px, -35px) rotate(-28deg); }
+  60% { transform: translate(10px, -55px) rotate(-38deg); }
+  80% { transform: translate(0, -78px) rotate(-50deg); }
+  100% { transform: translate(0, -80px) rotate(-50deg); }
+}
+
+.animate-wave-raise {
+  animation: navi-wave-raise 0.7s ease-out;
+}
+
+/* Sustained wave — child-only rotation oscillation. Parent holds position via .is-raised.
+   Use for awaiting-approval / hold states where smooth return via transition is needed. */
+@keyframes navi-wave-hold {
+  0%, 100% { transform: rotate(8deg); }
+  50% { transform: rotate(-8deg); }
+}
+
+.animate-wave-hold {
+  animation: navi-wave-hold 1.2s ease-in-out infinite;
+}
