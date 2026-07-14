@@ -246,7 +246,7 @@ Barra de Input Multimodal: Texto, adjuntos (cámara/galería) y micrófono.
 
 Layout de Pantalla Dividida (Split Screen / Overlay):
 
-Mitad Superior: Fondo negro con el avatar visual (SVG) de Navi a gran escala.
+Mitad Superior: Fondo con el avatar visual (SVG) de Navi a gran escala.
 
 Mitad Inferior: Lista de chats previos agrupados por fechas.
 
