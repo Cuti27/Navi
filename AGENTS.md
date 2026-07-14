@@ -151,3 +151,13 @@ Core coverage target: **≥ 70 %** lines in `src/` (excl. `index.ts`, pure typ
 - Commits use Spanish conventional-commit prefixes (`feat:`, `fix:`).
 - API is versioned in path (`/api/v1`). SemVer tags namespaced (e.g. `navi-core/v0.1.0`).
 - Frontend never stores LLM credentials — all secrets stay in backend env.
+
+## Documentation (READMEs)
+
+The repository has README files at three levels:
+
+- `README.md` (root) — high-level project overview, quick start, and cross-package commands.
+- `frontend/README.md` — frontend-specific setup, stack, scripts, and structure.
+- `navi-core/README.md` — backend-specific setup, environment, architecture, and API details.
+
+**Keep READMEs in sync:** if a change affects functionality, commands, environment variables, architecture, or conventions that are documented in any README, update the relevant README file(s) before finishing the task. When a change spans multiple packages, ensure the root, `frontend/`, and `navi-core/` READMEs remain consistent with each other and with `AGENTS.md`.

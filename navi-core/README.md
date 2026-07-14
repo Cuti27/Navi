@@ -15,40 +15,73 @@ Esta carpeta contiene la **Capa de Orquestación y Lógica** del sistema. Es un 
 - Construye un **System Prompt dinámico** (fecha, hora e información básica de red) para cada petición al LLM.
 - Implementa la estrategia híbrida de contexto: **ventana deslizante + resúmenes** para no perder memoria ni exceder el contexto del modelo.
 - Transmite las respuestas del LLM en **streaming (SSE)** y emite eventos de estado de las herramientas (Tool Calling) en tiempo real.
-- Actúa como **cliente MCP principal**, conectándose a servidores MCP internos del Swarm (`http://mcp-name:port`).
+- Actúa como **cliente MCP principal**, conectándose a servidores MCP del entorno.
 - Implementa el flujo **Human-in-the-Loop (HITL)**: pausa la ejecución de cualquier herramienta que modifique el estado del clúster hasta recibir una aprobación explícita del usuario.
 
 ## Tecnologías
 
 - [Hono](https://hono.dev/) — framework web ligero y basado en Web Standards.
+- [@hono/zod-openapi](https://github.com/honojs/middleware/tree/main/packages/zod-openapi) — generación de OpenAPI/Swagger.
 - [Vercel AI SDK](https://sdk.vercel.ai/) — integración y streaming con modelos de lenguaje.
 - [Drizzle ORM](https://orm.drizzle.team/) — ORM tipo-seguro para SQLite.
-- [SQLite](https://www.sqlite.org/) — base de datos local embebida.
+- [SQLite](https://www.sqlite.org/) + `better-sqlite3` — base de datos local embebida con WAL.
 - [tsx](https://github.com/privatenumber/tsx) — ejecución de TypeScript en desarrollo.
 
 ## Scripts
 
 ```bash
-# Instalar dependencias
+# Instalar dependencias (desde la raíz del monorepo)
 pnpm install
 
-# Desarrollo con hot reload
-pnpm dev
+# Desarrollo con hot reload en http://localhost:3000
+pnpm dev:core
 
-# Compilar TypeScript
-pnpm build
+# Compilar TypeScript a dist/
+pnpm --filter navi-core build
 
 # Ejecutar la versión compilada
-pnpm start
+pnpm --filter navi-core start
+
+# Typecheck sin emitir
+pnpm --filter navi-core exec tsc --noEmit
+
+# Tests
+pnpm --filter navi-core test
+pnpm --filter navi-core test:watch
+pnpm --filter navi-core test:coverage
+
+# Generar una nueva migración de Drizzle
+pnpm --filter navi-core exec drizzle-kit generate
 ```
 
-Por defecto, el servidor de desarrollo se levanta en `http://localhost:3000`.
+## Entorno
+
+Copia `.env.example` a `.env` y configura al menos las variables obligatorias:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Requerida | Descripción | Por defecto |
+|---|---|---|---|
+| `AI_MODEL` | Sí | Identificador del modelo de lenguaje. | — |
+| `MASTER_TOKEN` | Sí | Token de autenticación Bearer para todas las rutas `/api/v1/*`. | — |
+| `AI_PROVIDER` | No | Proveedor de IA: `openai` u `opencode`. | `openai` |
+| `AI_PROVIDER_API_URL` | No | URL base del proveedor. | — |
+| `AI_PROVIDER_API_KEY` | No | API key del proveedor. | — |
+| `DATABASE_URL` | No | Ruta del archivo SQLite. | `./data/navi.db` |
+| `MEMORY_DIR` | No | Directorio de memoria persistente. | `./data/memory` |
+| `COMPACTION_THRESHOLD` | No | Umbral de compactación de mensajes. | `30` |
+| `AI_SYSTEM_PROMPT` | No | Fragmento adicional del system prompt. | `""` |
+
+> `AI_MODEL` es obligatorio: el servidor fallará al arrancar si falta.
+> `MASTER_TOKEN` no tiene valor por defecto; sin él todas las peticiones devolverán `401`.
 
 ## Arquitectura dentro del monorepo
 
 ```
 ┌─────────────────┐
-│   Frontend(s)   │  ← Vue/Nuxt + Tauri (móvil/escritorio)
+│   Frontend(s)   │  ← Vue/Nuxt + Tauri (web/escritorio/móvil)
 └────────┬────────┘
          │ Token Maestro + SSE
          ▼
@@ -65,8 +98,79 @@ Por defecto, el servidor de desarrollo se levanta en `http://localhost:3000`.
 └───────┘  └─────────────┘
 ```
 
+## Estructura de `src/`
+
+```
+src/
+├── chat/              # Lógica de chat, streaming y compactación
+├── db/                # Cliente SQLite, schema, repositorios y migraciones
+├── memory/            # Memoria interna del agente (store, repo, herramientas)
+├── mcp/               # Configuración y servicio de herramientas MCP
+├── middleware/        # Middlewares de Hono (CORS, logging, masterAuth)
+├── prompts/           # Construcción del system prompt dinámico
+├── providers/         # Fábrica de proveedores de IA
+├── routes/v1/         # Rutas HTTP de la API v1
+├── test/              # Utilidades, factories y mocks de tests
+├── types/             # Tipos compartidos
+└── index.ts           # Punto de entrada
+```
+
+## API
+
+Todas las rutas están bajo `/api/v1` y requieren el header:
+
+```
+Authorization: Bearer <MASTER_TOKEN>
+```
+
+La documentación interactiva (Swagger UI) está disponible en `/api/v1/docs` cuando el servidor está en ejecución.
+
+Módulos de ruta principales:
+
+- `chat` — streaming de conversaciones.
+- `session` — gestión de sesiones de chat.
+- `approval` — aprobaciones Human-in-the-Loop.
+- `mcp` — listado y ejecución de herramientas MCP.
+- `memory` — herramientas de memoria interna.
+
+## MCP y Human-in-the-Loop (HITL)
+
+- Los servidores MCP se declaran en `mcp.config.json` y se cargan mediante `mcp-config.ts` → `mcp-tool-service.ts`.
+- Las herramientas listadas en `autoApproveTools` se ejecutan sin confirmación.
+- **Todas las demás herramientas requieren aprobación del usuario** antes de ejecutarse.
+- Las herramientas de memoria de solo lectura están exentas de HITL.
+- El flujo de aprobaciones se gestiona en `routes/v1/approval.route.ts` y sus repositorios asociados.
+
+## Persistencia
+
+- Esquema en `src/db/schema.ts`.
+- Las migraciones de Drizzle se aplican automáticamente al arrancar el servidor.
+- Genera nuevas migraciones con `pnpm --filter navi-core exec drizzle-kit generate`.
+- El directorio `./data/` (base de datos + memoria) se crea en tiempo de ejecución.
+
+> **Importante:** en producción, monta `./data` sobre un volumen físico persistente para evitar perder el estado del agente durante actualizaciones del clúster.
+
+## Tests
+
+- **Framework**: Vitest con entorno Node.
+- **Base de datos**: SQLite temporal creada con `mkdtempSync` y migrada con Drizzle.
+- **Infraestructura**: `src/test/setup.ts` exporta `createTestDb()`; factories en `test/factories.ts`; mocks en `test/mocks/`.
+- **Cobertura objetivo**: ≥ 70 % de líneas en `src/` (excluyendo `index.ts` y tipos puros).
+
+Ejecuta los tests con:
+
+```bash
+pnpm --filter navi-core test
+```
+
+## Seguridad
+
+- El frontend nunca almacena credenciales del LLM. Todas las claves residen exclusivamente en las variables de entorno de este backend.
+- Cada petición a `/api/v1/*` debe incluir el `MASTER_TOKEN` válido.
+- En producción, se recomienda exponer `navi-core` solo dentro de la red del clúster o detrás de un proxy con TLS.
+
 ## Notas importantes
 
-- **Persistencia de la base de datos**: la base de datos SQLite debe montarse siempre sobre un volumen físico persistente (por ejemplo, `/DATA/AppData/navi/db`) para evitar la pérdida de memoria del agente durante actualizaciones del clúster.
-- **Seguridad**: el frontend nunca almacena credenciales del LLM. Todas las claves residen exclusivamente en las variables de entorno de este backend.
-- **Despliegue**: este servicio debe proporcionar un `Dockerfile` y un `docker-compose.yml` para su despliegue como contenedor dentro del Swarm.
+- El proyecto usa ESM (`"type": "module"`). Los imports relativos deben incluir extensión `.js` (p. ej. `./providers/factory-provider.js`), aunque los ficheros fuente sean `.ts`.
+- `tsconfig.json` activa `verbatimModuleSyntax` y `module: NodeNext`; respétalo al añadir nuevos imports.
+- Este servicio debería proporcionar en el futuro un `Dockerfile` y un `docker-compose.yml` para su despliegue como contenedor dentro del Swarm.
