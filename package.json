@@ -1,0 +1,20 @@
+{
+  "name": "navi",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"pnpm dev:core\" \"pnpm dev:web\" --names core,web --prefix-colors auto",
+    "dev:core": "pnpm --filter navi-core dev",
+    "dev:web": "pnpm --filter frontend dev",
+    "build": "pnpm -r build",
+    "start": "pnpm --filter navi-core start",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r --if-present test",
+    "test:coverage": "pnpm -r --if-present test:coverage",
+    "test:e2e": "pnpm --filter frontend test:e2e"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
