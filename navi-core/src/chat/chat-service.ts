@@ -16,6 +16,7 @@ import type { Message, NewMessage } from "../db/schema.js"
 import { getLogger } from "../logger/logger.js"
 import type { CompactionService } from "./compaction-service.js"
 import type { MemoryContextBuilder } from "../memory/memory-context.js"
+import { mcpConfig } from "../mcp/mcp-config.js"
 
 export interface ChatServiceOptions {
     provider: AIProvider
@@ -40,6 +41,10 @@ export interface ApprovalResponseInput {
 
 const log = getLogger("chat")
 
+const MCP_AUTO_APPROVED_TOOLS = new Set(
+    mcpConfig.servers.flatMap((server) => server.autoApproveTools ?? [])
+)
+
 export class ChatService {
     private readonly options: ChatServiceOptions
 
@@ -58,8 +63,13 @@ export class ChatService {
      * 5. Si el LLM genera tool calls, emite eventos de aprobación y pausa.
      * 6. Al terminar el stream, persiste los responseMessages del SDK.
      */
-    async streamResponse(sessionId: string, userMessage: string): Promise<Response> {
-        const { sessionRepository, messageRepository, compactionService } = this.options
+    async streamResponse(
+        sessionId: string,
+        userMessage: string,
+        cancelPendingApprovals = false
+    ): Promise<Response> {
+        const { sessionRepository, messageRepository, approvalRepository, compactionService } =
+            this.options
 
         const session = await sessionRepository.getById(sessionId)
         if (!session) {
@@ -68,6 +78,19 @@ export class ChatService {
                 headers: { "Content-Type": "application/json" },
             })
         }
+
+        // If the user starts a new message while tool approvals are pending,
+        // deny them and record the tools as cancelled. This keeps the message
+        // history valid for the LLM.
+        if (cancelPendingApprovals && approvalRepository) {
+            await this.denyAllPendingApprovals(sessionId, approvalRepository, messageRepository)
+        }
+
+        // Guard against race conditions where the user sends a new message
+        // before the previous tool results were recorded. Without this, the
+        // provider receives an assistant message with tool_calls but no
+        // matching tool results, which causes a 400 invalid_request_error.
+        await this.sanitizeHangingToolCalls(sessionId, messageRepository)
 
         await messageRepository.create({
             id: randomUUID(),
@@ -78,8 +101,100 @@ export class ChatService {
 
         await compactionService?.checkAndCompact(sessionId)
 
-        const messages = await this.buildContext(sessionId)
-        return this.createSseResponse(sessionId, messages)
+        const context = await this.buildContext(sessionId)
+        return this.createSseResponse(sessionId, context)
+    }
+
+    private async denyAllPendingApprovals(
+        sessionId: string,
+        approvalRepository: ApprovalRepository,
+        messageRepository: MessageRepository
+    ): Promise<void> {
+        const pending = await approvalRepository.listPendingBySession(sessionId)
+        if (pending.length === 0) return
+
+        for (const approval of pending) {
+            await approvalRepository.updateStatus(approval.id, "denied", "Usuario canceló la acción")
+        }
+
+        await this.injectToolResultErrors(
+            sessionId,
+            pending.map((approval) => ({
+                toolCallId: approval.toolCallId,
+                toolName: approval.toolName,
+            })),
+            messageRepository,
+            "Usuario canceló la acción"
+        )
+
+        log.info({ sessionId, count: pending.length }, "pending approvals denied by new user message")
+    }
+
+    private async sanitizeHangingToolCalls(
+        sessionId: string,
+        messageRepository: MessageRepository
+    ): Promise<void> {
+        const history = await messageRepository.listAllBySessionChronological(sessionId)
+        const unresolved = this.findUnresolvedToolCalls(history)
+        if (unresolved.length === 0) return
+
+        log.warn({ sessionId, count: unresolved.length }, "sanitizing hanging tool calls")
+        await this.injectToolResultErrors(
+            sessionId,
+            unresolved,
+            messageRepository,
+            "La llamada a la herramienta fue interrumpida por un nuevo mensaje"
+        )
+    }
+
+    private findUnresolvedToolCalls(history: Message[]): Array<{ toolCallId: string; toolName: string }> {
+        const resolvedIds = new Set<string>()
+        const seen: Array<{ toolCallId: string; toolName: string }> = []
+
+        for (const message of history) {
+            if (message.role === "assistant" && Array.isArray(message.toolCalls)) {
+                for (const toolCall of message.toolCalls) {
+                    const tc = toolCall as { toolCallId?: string; id?: string; toolName?: string; name?: string }
+                    const toolCallId = tc.toolCallId ?? tc.id
+                    if (toolCallId) {
+                        seen.push({ toolCallId, toolName: tc.toolName ?? tc.name ?? "unknown" })
+                    }
+                }
+            }
+
+            if (message.role === "tool" && Array.isArray(message.parts)) {
+                for (const part of message.parts) {
+                    const p = part as { toolCallId?: string }
+                    if (p?.toolCallId) resolvedIds.add(p.toolCallId)
+                }
+            }
+        }
+
+        return seen.filter((toolCall) => !resolvedIds.has(toolCall.toolCallId))
+    }
+
+    private async injectToolResultErrors(
+        sessionId: string,
+        toolCalls: Array<{ toolCallId: string; toolName: string }>,
+        messageRepository: MessageRepository,
+        reason: string
+    ): Promise<void> {
+        if (toolCalls.length === 0) return
+
+        const parts = toolCalls.map((toolCall) => ({
+            type: "tool-result" as const,
+            toolCallId: toolCall.toolCallId,
+            toolName: toolCall.toolName,
+            output: { error: reason },
+        }))
+
+        await messageRepository.create({
+            id: randomUUID(),
+            sessionId,
+            role: "tool",
+            content: JSON.stringify(parts),
+            parts: parts as unknown as NewMessage["parts"],
+        })
     }
 
     /**
@@ -122,6 +237,19 @@ export class ChatService {
             approved: boolean
             reason?: string
         }> = []
+
+        const pendingBefore = await approvalRepository.listPendingBySession(sessionId)
+        const providedIds = new Set(responses.map((r) => r.approvalId))
+        const missingPending = pendingBefore.filter((a) => !providedIds.has(a.id))
+        if (missingPending.length > 0) {
+            return new Response(
+                JSON.stringify({
+                    error: "All pending tool approvals must be answered in the same request",
+                    missingApprovalIds: missingPending.map((a) => a.id),
+                }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+            )
+        }
 
         for (const response of responses) {
             const approval = await approvalRepository.getById(response.approvalId)
@@ -167,11 +295,11 @@ export class ChatService {
             "approval responses recorded, resuming stream"
         )
 
-        const messages = await this.buildContext(sessionId)
-        return this.createSseResponse(sessionId, messages)
+        const context = await this.buildContext(sessionId)
+        return this.createSseResponse(sessionId, context)
     }
 
-    private async buildContext(sessionId: string): Promise<ModelMessage[]> {
+    private async buildContext(sessionId: string): Promise<{ system: string; messages: ModelMessage[] }> {
         const { messageRepository, sessionRepository, maxHistoryMessages = 20, memoryContextBuilder } =
             this.options
 
@@ -182,13 +310,10 @@ export class ChatService {
         )
         const coreMessages = this.buildMessages(historyMessages)
 
-        const systemExtras: ModelMessage[] = []
+        const systemParts: string[] = []
 
         if (session?.contextSummary) {
-            systemExtras.push({
-                role: "system",
-                content: `## Resumen previo de la conversación\n\n${session.contextSummary}`,
-            })
+            systemParts.push(`## Resumen previo de la conversación\n\n${session.contextSummary}`)
         }
 
         if (memoryContextBuilder) {
@@ -196,25 +321,48 @@ export class ChatService {
             if (lastUserMessage) {
                 const memoryContext = await memoryContextBuilder.build(lastUserMessage.content)
                 if (memoryContext) {
-                    systemExtras.push({ role: "system", content: memoryContext })
+                    systemParts.push(memoryContext)
                 }
             }
         }
 
-        return [...systemExtras, ...coreMessages]
+        return { system: systemParts.join("\n\n"), messages: coreMessages }
     }
 
-    private createSseResponse(sessionId: string, messages: ModelMessage[]): Response {
+    private createSseResponse(
+        sessionId: string,
+        context: { system: string; messages: ModelMessage[] }
+    ): Response {
         const encoder = new TextEncoder()
 
         const sseStream = new ReadableStream({
             start: async (controller) => {
+                let runResult: { responseMessages: PromiseLike<ModelMessage[]> } | undefined
                 try {
-                    await this.runStream(sessionId, messages, controller, encoder)
+                    runResult = await this.runStream(sessionId, context, controller, encoder)
+                    log.info("runStream completed, closing controller")
                     controller.close()
+                    log.info("SSE controller closed")
                 } catch (error) {
                     log.error({ err: error }, "stream failed")
                     controller.error(error)
+                    return
+                }
+
+                // Persist after closing the stream so the client is never blocked
+                // if the provider's responseMessages promise hangs.
+                if (!runResult) return
+                try {
+                    const responseMessages = await Promise.race([
+                        runResult.responseMessages,
+                        new Promise<never>((_, reject) =>
+                            setTimeout(() => reject(new Error("responseMessages timeout")), 60000)
+                        ),
+                    ])
+                    await this.persistResponseMessages(sessionId, responseMessages)
+                    log.info("response messages persisted")
+                } catch (err) {
+                    log.error({ err }, "failed to persist response messages")
                 }
             },
         })
@@ -230,10 +378,10 @@ export class ChatService {
 
     private async runStream(
         sessionId: string,
-        messages: ModelMessage[],
+        context: { system: string; messages: ModelMessage[] },
         controller: ReadableStreamDefaultController<Uint8Array>,
         encoder: TextEncoder
-    ): Promise<void> {
+    ): Promise<{ responseMessages: PromiseLike<ModelMessage[]> }> {
         const {
             provider,
             modelId,
@@ -251,16 +399,18 @@ export class ChatService {
         log.info({ toolsCount: toolsNames.length }, "tools passed to LLM")
         log.debug({ toolsNames }, "enabled tools")
 
-        const system = systemPromptBuilder?.build()
+        const systemParts = [systemPromptBuilder?.build(), context.system].filter(Boolean)
+        const system = systemParts.join("\n\n")
 
         const result = streamText({
             model: provider.getModel(modelId),
             system,
-            messages,
+            messages: context.messages,
             tools,
             stopWhen: isStepCount(5),
             toolApproval: ({ toolCall }) => {
                 if (
+                    MCP_AUTO_APPROVED_TOOLS.has(toolCall.toolName) ||
                     toolExecutor?.isToolReadOnly(toolCall.toolName) ||
                     readOnlyToolNames?.has(toolCall.toolName)
                 ) {
@@ -324,15 +474,40 @@ export class ChatService {
             signature?: string
         }> = []
 
-        for await (const part of result.fullStream) {
+        const iterator = result.fullStream[Symbol.asyncIterator]()
+        const INACTIVITY_MS = 30000
+        let chunkCount = 0
+        log.info("starting fullStream consumption")
+        while (true) {
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                setTimeout(
+                    () => reject(new Error(`fullStream inactive for ${INACTIVITY_MS}ms`)),
+                    INACTIVITY_MS
+                )
+            })
+            let next: IteratorResult<TextStreamPart<Record<string, Tool>>, unknown>
+            try {
+                next = await Promise.race([iterator.next(), timeoutPromise])
+            } catch (err) {
+                log.warn({ err, chunkCount }, "fullStream inactivity timeout, closing stream")
+                await iterator.return?.().catch(() => {})
+                break
+            }
+            if (next.done) {
+                log.info({ chunkCount }, "fullStream iterator done")
+                break
+            }
+            chunkCount++
             this.handleStreamPart(
-                part,
+                next.value,
                 controller,
                 encoder,
                 sessionId,
                 pendingApprovals
             )
         }
+
+        log.info({ chunkCount }, "fullStream consumed")
 
         // Persist pending approval rows so the frontend can respond later.
         for (const approval of pendingApprovals) {
@@ -348,10 +523,9 @@ export class ChatService {
             })
         }
 
-        const responseMessages = await result.responseMessages
-        await this.persistResponseMessages(sessionId, responseMessages)
-
-        // Emit a terminator so the frontend knows why the stream closed.
+        // Emit a terminator immediately so the frontend can close the stream.
+        // Persisting responseMessages is done after closing the SSE connection
+        // to avoid blocking the client if the provider hangs on finishing the stream.
         const doneReason = pendingApprovals.length > 0 ? "awaiting-approval" : "complete"
         controller.enqueue(
             encoder.encode(
@@ -366,6 +540,8 @@ export class ChatService {
             { reason: doneReason, pendingCount: pendingApprovals.length },
             "stream finished"
         )
+
+        return { responseMessages: result.responseMessages as PromiseLike<ModelMessage[]> }
     }
 
     private handleStreamPart(
@@ -384,12 +560,27 @@ export class ChatService {
         }>
     ): void {
         if (part.type === "text-delta") {
-            controller.enqueue(encoder.encode(`data: ${part.text}\n\n`))
+            log.trace({ text: part.text, hasSpace: part.text.includes(" ") }, "text-delta")
+            controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify(part.text)}\n\n`)
+            )
             return
         }
 
         if (part.type === "tool-approval-request") {
-            const { approvalId, toolCall, signature } = part
+            const { approvalId, toolCall, signature, isAutomatic } = part
+
+            // Auto-approved tools (read-only / explicitly allowed) still emit a
+            // tool-approval-request from the SDK with isAutomatic: true. We must
+            // not forward those to the UI or persist them as pending approvals.
+            if (isAutomatic) {
+                log.debug(
+                    { approvalId, tool: toolCall.toolName },
+                    "skipping automatic tool approval request"
+                )
+                return
+            }
+
             const description = `Navi quiere ejecutar '${toolCall.toolName}'`
 
             const payload = {
@@ -506,8 +697,10 @@ export class ChatService {
                     return { role: "user", content: message.content }
                 }
 
+                // System messages are not allowed in the messages array in ai SDK v7+.
+                // They are combined into the instructions/system prompt in buildContext.
                 if (message.role === "system") {
-                    return { role: "system", content: message.content }
+                    return undefined
                 }
 
                 // Use structured parts when available; fall back to the legacy

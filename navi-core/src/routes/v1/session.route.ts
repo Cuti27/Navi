@@ -88,7 +88,7 @@ export function createSessionRoute(
         if (!session) {
             return c.json({ error: "Session not found" }, 404)
         }
-        const messages = await messageRepository.listBySession(id)
+        const messages = await messageRepository.listBySessionChronological(id)
         return c.json({ session, messages })
     })
 

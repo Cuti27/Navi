@@ -38,6 +38,7 @@ export class DynamicSystemPromptBuilder implements SystemPromptBuilder {
             "Cualquier herramienta que pueda modificar el estado del sistema requiere aprobación explícita del usuario.",
             "Si el usuario rechaza una herramienta, NO la reintentes. Informa del rechazo y ofrece alternativas si procede.",
             "Las herramientas de solo lectura están permitidas sin confirmación adicional.",
+            "Tienes que intentar responder de una manera útil, pero concisa, ya que principalmente se va a ver en un telefono móvil."
         ]
 
         const memoryToolNames = this.options.memoryToolNames
