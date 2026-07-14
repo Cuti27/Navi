@@ -70,54 +70,75 @@ watch(sessionId, () => {
 </script>
 
 <template>
-  <div class="flex flex-col h-screen bg-background max-w-full overflow-hidden">
-    <!-- Navbar -->
-    <div class="shrink-0 h-14 border-b border-border flex items-center px-4 gap-3 bg-card min-w-0">
-      <Button variant="ghost" size="icon" class="shrink-0" @click="router.push('/')">
-        <ArrowLeft class="h-5 w-5" />
-      </Button>
-      <h1 class="text-sm font-semibold truncate flex-1 min-w-0">{{ sessionTitle }}</h1>
-    </div>
-
-    <!-- Navi zone -->
-    <div class="shrink-0 h-20 border-b border-border bg-card/40 flex items-center justify-center overflow-hidden min-w-0">
+  <div class="flex flex-col md:flex-row h-screen bg-background max-w-full overflow-hidden">
+    <!-- Left: large Navi on desktop -->
+    <div
+      data-testid="chat-navi-column"
+      class="hidden md:flex md:w-1/2 md:max-w-[520px] md:flex-none md:h-full md:items-center md:justify-center md:bg-card/30 md:border-r md:border-border md:overflow-hidden"
+    >
       <NaviFace
         :state="agent.state"
-        class="h-full w-auto max-w-full"
         :with-background="false"
+        class="w-4/5 max-w-sm"
       />
     </div>
 
-    <!-- Messages -->
-    <div class="flex-1 min-h-0 overflow-hidden min-w-0">
-      <MessageList
-        :messages="messages"
-        :is-streaming="isStreaming"
-      />
-    </div>
-
-    <!-- Error bar -->
+    <!-- Right: chat -->
     <div
-      v-if="error"
-      class="shrink-0 px-4 py-2 bg-destructive/10 text-destructive text-sm font-mono border-t border-destructive/20"
+      data-testid="chat-content-column"
+      class="flex flex-col flex-1 min-w-0 md:h-full"
     >
-      {{ error }}
-    </div>
+      <!-- Navbar -->
+      <div class="shrink-0 h-14 border-b border-border flex items-center px-4 md:px-6 gap-3 bg-card min-w-0">
+        <Button variant="ghost" size="icon" class="shrink-0" @click="router.push('/')">
+          <ArrowLeft class="h-5 w-5" />
+        </Button>
+        <h1 class="text-sm font-semibold truncate flex-1 min-w-0">{{ sessionTitle }}</h1>
+      </div>
 
-    <!-- Composer: pending approvals + input -->
-    <div class="shrink-0 border-t border-border bg-card p-3 flex flex-col gap-2">
-      <ApprovalCard
-        v-for="approval in pendingApprovals"
-        :key="approval.approvalId"
-        :payload="approval"
-        @approve="handleApprove(approval.approvalId)"
-        @deny="handleDeny(approval.approvalId)"
-      />
-      <ChatInput
-        v-model="inputText"
-        :disabled="isStreaming"
-        @send="handleSend"
-      />
+      <!-- Small Navi strip: mobile only -->
+      <div
+        data-testid="chat-mobile-navi"
+        class="shrink-0 h-20 border-b border-border bg-card/40 flex items-center justify-center overflow-hidden min-w-0 md:hidden"
+      >
+        <NaviFace
+          :state="agent.state"
+          class="h-full w-auto max-w-full"
+          :with-background="false"
+        />
+      </div>
+
+      <!-- Messages -->
+      <div class="flex-1 min-h-0 overflow-hidden min-w-0">
+        <MessageList
+          :messages="messages"
+          :is-streaming="isStreaming"
+        />
+      </div>
+
+      <!-- Error bar -->
+      <div
+        v-if="error"
+        class="shrink-0 px-4 py-2 bg-destructive/10 text-destructive text-sm font-mono border-t border-destructive/20"
+      >
+        {{ error }}
+      </div>
+
+      <!-- Composer: pending approvals + input -->
+      <div class="shrink-0 border-t border-border bg-card p-3 flex flex-col gap-2">
+        <ApprovalCard
+          v-for="approval in pendingApprovals"
+          :key="approval.approvalId"
+          :payload="approval"
+          @approve="handleApprove(approval.approvalId)"
+          @deny="handleDeny(approval.approvalId)"
+        />
+        <ChatInput
+          v-model="inputText"
+          :disabled="isStreaming"
+          @send="handleSend"
+        />
+      </div>
     </div>
   </div>
 </template>

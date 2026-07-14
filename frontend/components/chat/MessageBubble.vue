@@ -26,7 +26,7 @@ const time = computed(() => {
 
 <template>
   <div :class="['flex w-full min-w-0', isUser ? 'justify-end' : 'justify-start']">
-    <div :class="['max-w-[85%] min-w-0 flex flex-col', isUser ? 'items-end' : 'items-start']">
+    <div :class="['max-w-[85%] md:max-w-[75%] lg:max-w-3xl min-w-0 flex flex-col', isUser ? 'items-end' : 'items-start']">
       <div
         v-if="!isSummary"
         :class="[
