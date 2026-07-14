@@ -2,7 +2,7 @@
 
 Interfaz de usuario de **Navi**, el agente de IA privado para Homelab.
 
-Este paquete contiene la aplicación web construida con [Nuxt 3](https://nuxt.com/), diseñada para conectarse de forma segura a [`navi-core`](../navi-core/README.md). Está preparada para poder empaquetarse posteriormente como aplicación de escritorio o móvil mediante [Tauri v2](https://v2.tauri.app/).
+Este paquete contiene la aplicación web construida con [Nuxt 3](https://nuxt.com/), diseñada para conectarse de forma segura a [`navi-core`](../navi-core/README.md). Se distribuye como **PWA** (Progressive Web App) instalable en iOS, Android y escritorio, y el código sigue preparado para poder empaquetarse posteriormente como aplicación nativa mediante [Tauri v2](https://v2.tauri.app/) si fuera necesario.
 
 ## Stack tecnológico
 
@@ -14,6 +14,7 @@ Este paquete contiene la aplicación web construida con [Nuxt 3](https://nuxt.co
 - [@nuxtjs/google-fonts](https://google-fonts.nuxtjs.org/) — Inter y JetBrains Mono.
 - [Vitest](https://vitest.dev/) con entorno Nuxt para tests unitarios/de componentes.
 - [Playwright](https://playwright.dev/) para tests E2E.
+- [@vite-pwa/nuxt](https://vite-pwa-org.netlify.app/) — PWA instalable con manifest y service worker.
 
 ## Scripts
 
@@ -104,8 +105,39 @@ pnpm --filter frontend test:e2e
 
 Consulta [`DESIGN.md`](./DESIGN.md) para conocer el sistema de diseño "Analogue Blueprint": principios visuales, paleta de color, tipografía, espaciado y componentes base.
 
+## PWA (Progressive Web App)
+
+El frontend se empaqueta como PWA mediante `@vite-pwa/nuxt`:
+
+- Manifest en `nuxt.config.ts` con nombre, iconos, colores y comportamiento standalone.
+- Service worker generado automáticamente con cacheo de assets estáticos.
+- Prompt de instalación en Android/desktop (`components/PwaInstallPrompt.vue`).
+- En iOS la instalación es manual: Safari → Compartir → Añadir a pantalla de inicio.
+
+### Instalación por plataforma
+
+**iOS (Safari)**
+1. Abre la app en Safari.
+2. Pulsa el botón Compartir.
+3. Selecciona "Añadir a pantalla de inicio".
+
+**Android (Chrome)**
+1. Abre la app en Chrome.
+2. Pulsa "Añadir a pantalla de inicio" en el banner o menú.
+
+**Escritorio (Chrome/Edge)**
+1. Abre la app en el navegador.
+2. Pulsa el icono de instalar en la barra de direcciones.
+
+### Notificaciones y haptics
+
+- Las notificaciones locales funcionan en la PWA cuando la app no está visible, siempre que el navegador lo soporte.
+- En iOS las notificaciones requieren que la PWA esté instalada y iOS >= 16.4.
+- Los haptics (`navigator.vibrate`) funcionan en Android y algunos escritorios, pero **no en iOS**.
+
 ## Notas importantes
 
 - El `tsconfig.json` del frontend extiende `.nuxt/tsconfig.json`; no lo edites a mano. Ejecuta `nuxt prepare` (se lanza automáticamente en `postinstall`) para regenerarlo.
 - Tailwind v4 se configura mediante directivas `@theme` en `assets/css/tailwind.css`; `tailwind.config.ts` es un stub mínimo para la CLI de shadcn.
 - Para desarrollo conjunto con el backend, usa `pnpm dev` desde la raíz del monorepo.
+- El token maestro se almacena en IndexedDB en la PWA/web y en el plugin Store de Tauri cuando la app corre dentro de Tauri.

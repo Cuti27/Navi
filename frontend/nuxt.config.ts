@@ -14,6 +14,7 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@nuxtjs/google-fonts',
     'shadcn-nuxt',
+    '@vite-pwa/nuxt',
   ],
   css: ['~/assets/css/tailwind.css'],
   vite: {
@@ -34,5 +35,84 @@ export default defineNuxtConfig({
   shadcn: {
     prefix: '',
     componentDir: './components/ui',
+  },
+  pwa: {
+    registerType: 'autoUpdate',
+    manifest: {
+      name: 'Navi',
+      short_name: 'Navi',
+      description: 'Agente de IA privado para Homelab',
+      theme_color: '#99462a',
+      background_color: '#fff8f6',
+      display: 'standalone',
+      orientation: 'portrait',
+      start_url: '/',
+      scope: '/',
+      icons: [
+        {
+          src: '/icon.png',
+          sizes: '1024x1024',
+          type: 'image/png',
+          purpose: 'any maskable',
+        },
+      ],
+    },
+    workbox: {
+      navigateFallback: '/',
+      globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2}'],
+      runtimeCaching: [
+        {
+          urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'google-fonts-cache',
+            expiration: {
+              maxEntries: 10,
+              maxAgeSeconds: 60 * 60 * 24 * 365,
+            },
+            cacheableResponse: {
+              statuses: [0, 200],
+            },
+          },
+        },
+        {
+          urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'gstatic-fonts-cache',
+            expiration: {
+              maxEntries: 10,
+              maxAgeSeconds: 60 * 60 * 24 * 365,
+            },
+            cacheableResponse: {
+              statuses: [0, 200],
+            },
+          },
+        },
+      ],
+    },
+    client: {
+      installPrompt: true,
+      periodicSyncForUpdates: 20,
+    },
+    devOptions: {
+      enabled: true,
+      type: 'module',
+    },
+  },
+  app: {
+    head: {
+      meta: [
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
+        { name: 'apple-mobile-web-app-title', content: 'Navi' },
+        { name: 'mobile-web-app-capable', content: 'yes' },
+        { name: 'theme-color', content: '#99462a' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover' },
+      ],
+      link: [
+        { rel: 'apple-touch-icon', href: '/icon.png' },
+      ],
+    },
   },
 })

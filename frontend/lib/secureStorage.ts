@@ -1,27 +1,61 @@
+import { idbGetItem, idbRemoveItem, idbSetItem } from './idbStorage.js'
+
 export interface SecureStorage {
   getItem(key: string): Promise<string | null>
   setItem(key: string, value: string): Promise<void>
   removeItem(key: string): Promise<void>
 }
 
-function createCookieStorage(): SecureStorage {
-  const tokenCookie = useCookie<string | null>('navi-token', {
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 30,
-    path: '/',
-  })
+function isClient(): boolean {
+  return import.meta.client && typeof window !== 'undefined'
+}
 
-  return {
-    async getItem() {
-      return tokenCookie.value ?? null
-    },
-    async setItem(_key, value) {
-      tokenCookie.value = value
-    },
-    async removeItem() {
-      tokenCookie.value = null
-    },
+function createWebStorage(): SecureStorage {
+  async function getItem(key: string): Promise<string | null> {
+    if (!isClient()) return null
+    try {
+      const value = await idbGetItem(key)
+      if (value !== null) return value
+    } catch {
+      // Fall through to localStorage
+    }
+    try {
+      return localStorage.getItem(key)
+    } catch {
+      return null
+    }
   }
+
+  async function setItem(key: string, value: string): Promise<void> {
+    if (!isClient()) return
+    try {
+      await idbSetItem(key, value)
+      return
+    } catch {
+      // Fall through to localStorage
+    }
+    try {
+      localStorage.setItem(key, value)
+    } catch {
+      // Storage may be disabled or full; ignore silently.
+    }
+  }
+
+  async function removeItem(key: string): Promise<void> {
+    if (!isClient()) return
+    try {
+      await idbRemoveItem(key)
+    } catch {
+      // Ignore IndexedDB errors
+    }
+    try {
+      localStorage.removeItem(key)
+    } catch {
+      // Ignore localStorage errors
+    }
+  }
+
+  return { getItem, setItem, removeItem }
 }
 
 function createTauriStorage(): SecureStorage {
@@ -59,5 +93,5 @@ export function useSecureStorage(): SecureStorage {
     return createTauriStorage()
   }
 
-  return createCookieStorage()
+  return createWebStorage()
 }
