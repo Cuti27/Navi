@@ -1,5 +1,6 @@
 import type { Tool } from "ai"
 import { createMCPClient, type MCPClient } from "@ai-sdk/mcp"
+import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio"
 import { getLogger } from "../logger/logger.js"
 import type { McpServerConfig } from "./mcp-config.js"
 import type { ActiveService, AvailableTool } from "./mcp-types.js"
@@ -18,11 +19,11 @@ interface ServerConnection {
 }
 
 /**
- * Remote MCP tool executor.
+ * MCP tool executor.
  *
- * Connects to HTTP/SSE MCP servers, discovers their tools, and exposes them
- * to the LLM through the ToolExecutor interface. Tools can be enabled or
- * disabled individually at runtime (in memory).
+ * Connects to HTTP/SSE and stdio MCP servers, discovers their tools, and
+ * exposes them to the LLM through the ToolExecutor interface. Tools can be
+ * enabled or disabled individually at runtime (in memory).
  */
 export class McpToolService implements ToolExecutor {
     private readonly connections: ServerConnection[] = []
@@ -52,13 +53,8 @@ export class McpToolService implements ToolExecutor {
         }
 
         try {
-            const client = await createMCPClient({
-                transport: {
-                    type: "http",
-                    url: connection.config.url,
-                    headers: connection.config.headers,
-                },
-            })
+            const transport = this.buildTransport(connection.config)
+            const client = await createMCPClient({ transport })
 
             const listResult = await client.listTools()
             const convertedTools = await client.tools()
@@ -90,6 +86,32 @@ export class McpToolService implements ToolExecutor {
             connection.status = "error"
             connection.error = error instanceof Error ? error.message : String(error)
             log.error({ server: connection.config.name, err: connection.error }, "connection failed")
+        }
+    }
+
+    private buildTransport(config: McpServerConfig) {
+        const transport = config.transport ?? "http"
+
+        if (transport === "stdio") {
+            if (!config.command) {
+                throw new Error(`MCP server "${config.name}" is configured with stdio transport but missing "command"`)
+            }
+            return new Experimental_StdioMCPTransport({
+                command: config.command,
+                args: config.args,
+                env: config.env,
+                cwd: config.cwd,
+            })
+        }
+
+        if (!config.url) {
+            throw new Error(`MCP server "${config.name}" is configured with ${transport} transport but missing "url"`)
+        }
+
+        return {
+            type: transport,
+            url: config.url,
+            headers: config.headers,
         }
     }
 

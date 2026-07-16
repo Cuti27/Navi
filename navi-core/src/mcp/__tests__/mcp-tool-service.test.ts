@@ -6,8 +6,14 @@ const mockClient = {
   tools: vi.fn(),
 }
 
+const mockStdioTransport = vi.fn()
+
 vi.mock("@ai-sdk/mcp", () => ({
   createMCPClient: vi.fn().mockResolvedValue(mockClient),
+}))
+
+vi.mock("@ai-sdk/mcp/mcp-stdio", () => ({
+  Experimental_StdioMCPTransport: mockStdioTransport,
 }))
 
 async function flushMicrotasks(): Promise<void> {
@@ -97,5 +103,79 @@ describe("McpToolService", () => {
     expect(service.isToolReadOnly("safe_tool")).toBe(true)
     expect(service.isToolReadOnly("unsafe_tool")).toBe(false)
     expect(service.isToolReadOnly("unknown")).toBe(false)
+  })
+
+  it("connects to a stdio server and exposes its tools", async () => {
+    mockClient.listTools.mockResolvedValue({
+      tools: [{ name: "stdio_tool", description: "A stdio tool", annotations: {} }],
+    })
+    mockClient.tools.mockResolvedValue({ stdio_tool: { description: "A stdio tool" } })
+
+    const { McpToolService } = await import("../mcp-tool-service.js")
+    const { createMCPClient } = await import("@ai-sdk/mcp")
+    const configs: McpServerConfig[] = [
+      {
+        name: "test-stdio",
+        transport: "stdio",
+        command: "node",
+        args: ["server.js"],
+        env: { FOO: "bar" },
+      },
+    ]
+    const service = new McpToolService(configs)
+    service.connect()
+    await flushMicrotasks()
+
+    expect(mockStdioTransport).toHaveBeenCalledWith({
+      command: "node",
+      args: ["server.js"],
+      env: { FOO: "bar" },
+      cwd: undefined,
+    })
+    expect(createMCPClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        transport: expect.anything(),
+      })
+    )
+
+    const services = service.getActiveServices()
+    expect(services[0].name).toBe("test-stdio")
+    expect(services[0].status).toBe("connected")
+    expect(services[0].url).toBeUndefined()
+    expect(services[0].tools).toEqual(["stdio_tool"])
+  })
+
+  it("marks stdio server as error when command is missing", async () => {
+    const { McpToolService } = await import("../mcp-tool-service.js")
+    const configs: McpServerConfig[] = [
+      {
+        name: "bad-stdio",
+        transport: "stdio",
+      } as McpServerConfig,
+    ]
+    const service = new McpToolService(configs)
+    service.connect()
+    await flushMicrotasks()
+
+    const services = service.getActiveServices()
+    expect(services[0].status).toBe("error")
+    expect(services[0].error).toContain('missing "command"')
+  })
+
+  it("marks http server as error when url is missing", async () => {
+    const { McpToolService } = await import("../mcp-tool-service.js")
+    const configs: McpServerConfig[] = [
+      {
+        name: "bad-http",
+        transport: "http",
+      } as McpServerConfig,
+    ]
+    const service = new McpToolService(configs)
+    service.connect()
+    await flushMicrotasks()
+
+    const services = service.getActiveServices()
+    expect(services[0].status).toBe("error")
+    expect(services[0].error).toContain('missing "url"')
   })
 })
