@@ -9,6 +9,34 @@
         "read_wiki_contents",
         "ask_question"
       ]
+    },
+    {
+      "name": "exa",
+      "enabled": true,
+      "transport": "http",
+      "url": "https://mcp.exa.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer ${EXA_API_KEY}"
+      },
+      "autoApproveTools": [
+        "web_search_exa",
+        "web_fetch_exa"
+      ]
+    },
+    {
+      "name": "fetch",
+      "enabled": true,
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-fetch-server"
+      ],
+      "autoApproveTools": [
+        "fetch_readable",
+        "fetch_markdown",
+        "fetch_txt"
+      ]
     }
   ]
 }

@@ -85,6 +85,10 @@ El frontend también incluye tests E2E con Playwright:
 pnpm --filter frontend test:e2e
 ```
 
+## Búsqueda web
+
+`navi-core` incluye por defecto el MCP server de **Exa** para búsqueda web (requiere `EXA_API_KEY` en `navi-core/.env`) y un servidor MCP **fetch** como fallback sin API key. Consulta [`navi-core/README.md`](./navi-core/README.md#mcp-y-human-in-the-loop-hitl) para más detalles.
+
 ## Seguridad
 
 - Todas las rutas de la API (`/api/v1/*`) están protegidas por un **Token Maestro** (`MASTER_TOKEN`).

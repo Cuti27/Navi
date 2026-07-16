@@ -73,6 +73,7 @@ cp .env.example .env
 | `MEMORY_DIR` | No | Directorio de memoria persistente. | `./data/memory` |
 | `COMPACTION_THRESHOLD` | No | Umbral de compactación de mensajes. | `30` |
 | `AI_SYSTEM_PROMPT` | No | Fragmento adicional del system prompt. | `""` |
+| `EXA_API_KEY` | No | API key de [Exa](https://exa.ai/) para búsquedas web vía MCP. | — |
 
 > `AI_MODEL` es obligatorio: el servidor fallará al arrancar si falta.
 > `MASTER_TOKEN` no tiene valor por defecto; sin él todas las peticiones devolverán `401`.
@@ -136,10 +137,28 @@ Módulos de ruta principales:
 ## MCP y Human-in-the-Loop (HITL)
 
 - Los servidores MCP se declaran en `mcp.config.json` y se cargan mediante `mcp-config.ts` → `mcp-tool-service.ts`.
+- Se soportan transportes **HTTP**, **SSE** y **stdio**.
+- `mcp.config.json` admite variables de entorno con la sintaxis `${VAR}` (por ejemplo, en headers o en el comando stdio).
 - Las herramientas listadas en `autoApproveTools` se ejecutan sin confirmación.
 - **Todas las demás herramientas requieren aprobación del usuario** antes de ejecutarse.
 - Las herramientas de memoria de solo lectura están exentas de HITL.
 - El flujo de aprobaciones se gestiona en `routes/v1/approval.route.ts` y sus repositorios asociados.
+
+### Servidores MCP por defecto
+
+El archivo `mcp.config.json` incluye de serie:
+
+- **`deepwiki`** (HTTP): documentación de repositorios.
+- **`exa`** (HTTP): búsqueda web y fetch de páginas. Requiere `EXA_API_KEY`. Las herramientas `web_search_exa` y `web_fetch_exa` están auto-apradas.
+- **`fetch`** (stdio): fetch de contenido web sin API key, como fallback cuando Exa no esté disponible. Usa `mcp-fetch-server`.
+
+Para activar Exa, añade tu API key a `navi-core/.env`:
+
+```bash
+EXA_API_KEY=your_exa_api_key
+```
+
+El header `Authorization: Bearer ${EXA_API_KEY}` se inyecta automáticamente desde la configuración MCP.
 
 ## Persistencia
 

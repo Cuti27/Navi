@@ -60,6 +60,7 @@ Copy `navi-core/.env.example` to `navi-core/.env`. `src/index.ts` loads `dotenv/
 - `MASTER_TOKEN` — protects all `/api/v1/*` routes via `Bearer` auth. No default; unset means every request 401s.
 - `AI_PROVIDER`, `AI_PROVIDER_API_URL`, `AI_PROVIDER_API_KEY` — read by `factory-provider.ts` (supports `openai` and `opencode`).
 - Defaults: `DATABASE_URL`=`./data/navi.db`, `MEMORY_DIR`=`./data/memory`, `COMPACTION_THRESHOLD`=`30`, `AI_SYSTEM_PROMPT`=``.
+- `EXA_API_KEY` enables the default `exa` MCP server for web search.
 - `DATABASE_URL` is NOT in `.env.example` but used by `drizzle.config.ts` and `src/index.ts`.
 
 ### Testing
@@ -80,7 +81,7 @@ Core coverage target: **≥ 70 %** lines in `src/` (excl. `index.ts`, pure typ
 | Services | `chat/__tests__/compaction-service.test.ts` | Mocked AI SDK (`generateText`) + mock repos |
 | Prompts | `prompts/__tests__/dynamic-system-prompt.test.ts` | Pure unit, mock `node:os` |
 | Memory | `memory/__tests__/*.test.ts` | Real store (temp dir) + real DB + FTS5 search |
-| MCP | `mcp/__tests__/*.test.ts` | Mock `@ai-sdk/mcp`, real config, fake executor |
+| MCP | `mcp/__tests__/*.test.ts` | Mock `@ai-sdk/mcp` and `@ai-sdk/mcp/mcp-stdio`, real config, fake executor |
 | Middleware | `middleware/__tests__/*.test.ts` | Hono app with mocked env |
 | Routes | `routes/v1/__tests__/*.test.ts` | Hono `app.request()` with mock dependencies |
 | E2E orchestration | `chat/__tests__/e2e-orchestration.test.ts` | `createV1Routes` with real `ChatService` + mocked `streamText` |
@@ -125,7 +126,9 @@ Core coverage target: **≥ 70 %** lines in `src/` (excl. `index.ts`, pure typ
 
 ### MCP + HITL
 
-- MCP servers declared in `navi-core/mcp.config.json`; `mcp-config.ts` → `mcp-tool-service.ts`. Tools listed under `autoApproveTools` run without confirmation; **all other tools require Human-in-the-Loop approval** (approval flow in `routes/v1/approval.route.ts`, repos in `src/db/repositories/`).
+- MCP servers declared in `navi-core/mcp.config.json`; `mcp-config.ts` → `mcp-tool-service.ts`. Supports **HTTP**, **SSE**, and **stdio** transports. Config values can include environment variables using `${VAR}` syntax.
+- Default servers: `deepwiki` (HTTP docs), `exa` (HTTP web search, requires `EXA_API_KEY`), and `fetch` (stdio URL fetch fallback via `mcp-fetch-server`).
+- Tools listed under `autoApproveTools` run without confirmation; **all other tools require Human-in-the-Loop approval** (approval flow in `routes/v1/approval.route.ts`, repos in `src/db/repositories/`).
 - `src/memory/` implements in-repo memory (store + repository + tools + context builder) and is reindexed on boot (`memoryRepository.reindexAll()`). Read-only memory tool names are exempted from HITL.
 
 ### Routing

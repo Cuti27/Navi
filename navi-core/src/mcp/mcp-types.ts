@@ -3,7 +3,10 @@
  */
 export interface ActiveService {
     name: string
-    url: string
+    /**
+     * URL for HTTP/SSE transports. Undefined for stdio transports.
+     */
+    url?: string
     status: "connecting" | "connected" | "error" | "disabled"
     tools: string[]
     error?: string

@@ -10,7 +10,7 @@ const ServiceStatusSchema = z.enum([
 
 const ActiveServiceSchema = z.object({
     name: z.string(),
-    url: z.string(),
+    url: z.string().optional(),
     status: ServiceStatusSchema,
     tools: z.array(z.string()),
     error: z.string().optional(),
