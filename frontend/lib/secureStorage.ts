@@ -7,7 +7,7 @@ export interface SecureStorage {
 }
 
 function isClient(): boolean {
-  return import.meta.client && typeof window !== 'undefined'
+  return Boolean(import.meta.client) && typeof window !== 'undefined'
 }
 
 function createWebStorage(): SecureStorage {
