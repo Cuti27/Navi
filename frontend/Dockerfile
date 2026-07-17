@@ -5,7 +5,7 @@ WORKDIR /app
 FROM base AS deps
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
 COPY frontend/package.json frontend/
-RUN pnpm install --frozen-lockfile --filter frontend --prod
+RUN pnpm install --frozen-lockfile --filter frontend --prod --ignore-scripts
 
 FROM base AS build
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
