@@ -74,7 +74,7 @@ async function handleSubmit() {
   isLoading.value = true
 
   try {
-    // Guardar token temporalmente para validar
+    // Store token temporarily to validate
     auth.setToken(tokenInput.value.trim())
     await api.getSessions()
     await router.push('/')

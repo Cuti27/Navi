@@ -53,15 +53,15 @@ export class ChatService {
     }
 
     /**
-     * Genera una respuesta en streaming para un mensaje de usuario dentro de una sesión.
+     * Generates a streaming response for a user message within a session.
      *
-     * El flujo:
-     * 1. Valida que la sesión existe.
-     * 2. Carga los últimos N mensajes del historial.
-     * 3. Persiste el mensaje del usuario.
-     * 4. Llama a streamText con system prompt dinámico + historial + tools.
-     * 5. Si el LLM genera tool calls, emite eventos de aprobación y pausa.
-     * 6. Al terminar el stream, persiste los responseMessages del SDK.
+     * The flow:
+     * 1. Validates the session exists.
+     * 2. Loads the last N messages from history.
+     * 3. Persists the user message.
+     * 4. Calls streamText with dynamic system prompt + history + tools.
+     * 5. If the LLM generates tool calls, emits approval events and pauses.
+     * 6. Upon stream completion, persists the SDK responseMessages.
      */
     async streamResponse(
         sessionId: string,
@@ -198,16 +198,16 @@ export class ChatService {
     }
 
     /**
-     * Lista las aprobaciones de tools pendientes para una sesión. Útil para que
-     * el frontend recupere su estado tras una reconexión o reinicio del servidor.
+     * Lists pending tool approvals for a session. Useful for the frontend
+     * to recover its state after a reconnection or server restart.
      */
     async listPendingApprovals(sessionId: string) {
         return this.options.approvalRepository.listPendingBySession(sessionId)
     }
 
     /**
-     * Reanuda la generación después de que el usuario responda a una o más
-     * peticiones de aprobación de tools.
+     * Resumes generation after the user responds to one or more
+     * tool approval requests.
      */
 
     async streamApprovalResponse(

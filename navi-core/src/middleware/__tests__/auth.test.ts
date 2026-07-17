@@ -36,4 +36,12 @@ describe("masterAuth middleware", () => {
     })
     expect(res.status).toBe(401)
   })
+
+  it("rejects requests when MASTER_TOKEN is not configured", async () => {
+    delete process.env.MASTER_TOKEN
+    const res = await app.request("/test", {
+      headers: { Authorization: "Bearer test-token" },
+    })
+    expect(res.status).toBe(401)
+  })
 })

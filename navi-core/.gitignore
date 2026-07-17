@@ -33,6 +33,7 @@ dist/*
 coverage/
 
 # Base de datos SQLite local
+data/
 *.db
 *.db-journal
 *.db-shm

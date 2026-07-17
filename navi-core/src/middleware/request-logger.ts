@@ -16,6 +16,8 @@ export const requestLogger: MiddlewareHandler = async (c, next) => {
     })
 
     const duration = Date.now() - start
+    // Intentionally avoid logging headers or bodies to prevent leaking the
+    // Authorization token or any user content.
     getLogger("http").info(
         {
             method: c.req.method,

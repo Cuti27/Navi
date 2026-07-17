@@ -102,4 +102,13 @@ describe("MemoryStore", () => {
     const read = await store.read(saved.filePath)
     expect(read!.id).toBe("custom-id")
   })
+
+  it("rejects path traversal when reading", async () => {
+    await expect(store.read("../outside.md")).rejects.toThrow("Invalid memory path")
+  })
+
+  it("rejects absolute paths", async () => {
+    await expect(store.read("/etc/passwd")).rejects.toThrow("Invalid memory path")
+  })
+
 })

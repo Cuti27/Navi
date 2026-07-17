@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto"
 import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises"
-import { dirname, join, normalize, relative } from "node:path"
+import { dirname, join, normalize, relative, resolve, sep } from "node:path"
 
 export interface MemoryFileInput {
     id?: string
@@ -114,7 +114,19 @@ function parseMemoryFile(filePath: string, raw: string): MemoryFile {
 }
 
 export class MemoryStore {
-    constructor(private readonly memoryRoot: string) {}
+    constructor(private readonly memoryRoot: string) {
+        this.memoryRoot = resolve(memoryRoot)
+    }
+
+    private assertWithinRoot(absolutePath: string): void {
+        const resolved = resolve(absolutePath)
+        const root = resolve(this.memoryRoot)
+        // Allow the root itself (listing) and any path below it. Reject
+        // paths outside or equal to the root's parent.
+        if (resolved !== root && !resolved.startsWith(root + sep)) {
+            throw new Error("Invalid memory path: outside memory root")
+        }
+    }
 
     /**
      * Writes a new memory markdown file. Returns the resolved MemoryFile
@@ -186,7 +198,8 @@ export class MemoryStore {
      * Lists all memory markdown files recursively. Optionally filtered by category.
      */
     async list(category?: string): Promise<MemoryFile[]> {
-        const root = category ? join(this.memoryRoot, category) : this.memoryRoot
+        const safeCategory = category ? sanitizeSlug(category) : undefined
+        const root = safeCategory ? join(this.memoryRoot, safeCategory) : this.memoryRoot
         const files = await this.listMarkdownFiles(root)
         const result: MemoryFile[] = []
         for (const absolutePath of files) {
@@ -206,13 +219,16 @@ export class MemoryStore {
 
     private toAbsolutePath(filePath: string): string {
         const normalized = normalize(filePath)
-        if (normalized.startsWith("..")) {
+        if (normalized.startsWith("..") || normalized.startsWith("/") || normalized.startsWith("\\")) {
             throw new Error("Invalid memory path: path traversal detected")
         }
-        return join(this.memoryRoot, normalized)
+        const absolute = join(this.memoryRoot, normalized)
+        this.assertWithinRoot(absolute)
+        return absolute
     }
 
     private async listMarkdownFiles(dir: string): Promise<string[]> {
+        this.assertWithinRoot(dir)
         const entries = await readdir(dir, { withFileTypes: true, recursive: true })
         return entries
             .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))

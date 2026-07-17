@@ -95,8 +95,13 @@ const chatService = new ChatService({
 
 const app = new Hono()
 
+app.get("/health", (c) => c.json({ status: "ok" }))
+
+const corsOrigins = process.env.CORS_ORIGINS ?? "*"
+const allowedOrigins = corsOrigins === "*" ? "*" : corsOrigins.split(",").map(o => o.trim())
+
 app.use("/api/v1/*", cors({
-    origin: "*",
+    origin: allowedOrigins,
     allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
 }))
