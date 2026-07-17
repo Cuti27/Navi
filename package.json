@@ -2,6 +2,7 @@
   "name": "navi",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.1.2",
   "scripts": {
     "dev": "concurrently \"pnpm dev:core\" \"pnpm dev:web\" --names core,web --prefix-colors auto",
     "dev:core": "pnpm --filter navi-core dev",
