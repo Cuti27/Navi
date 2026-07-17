@@ -1,4 +1,4 @@
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
 RUN corepack enable && corepack prepare pnpm@11.1.2 --activate
 WORKDIR /app
 
@@ -13,7 +13,7 @@ COPY frontend/ frontend/
 RUN pnpm install --frozen-lockfile --filter frontend
 RUN cd frontend && pnpm build
 
-FROM node:22-alpine AS production
+FROM node:24-alpine AS production
 RUN addgroup -g 1001 -S nodejs && adduser -S navi -u 1001
 WORKDIR /app
 

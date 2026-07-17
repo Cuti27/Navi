@@ -49,7 +49,7 @@ docker compose down               # stop services
 - **Both packages have vitest with actual tests.** Test pattern: co-located `__tests__/*.test.ts` or `__tests__/*.spec.ts`.
 - **Vitest `globals: false`** in both configs — import `describe`/`it`/`expect` explicitly from `vitest`.
 - **CI pipeline** — `.github/workflows/docker-publish.yml` builds and pushes Docker images to GHCR on push to `main`.
-- **Dockerfiles** — `navi-core/Dockerfile` (multi-stage, Node 22 Alpine), `frontend/Dockerfile` (multi-stage, Node 22 Alpine). `docker-compose.yml` at repo root for Portainer GitOps.
+- **Dockerfiles** — `navi-core/Dockerfile` (multi-stage, Node 24 Alpine), `frontend/Dockerfile` (multi-stage, Node 24 Alpine). `docker-compose.yml` at repo root for Portainer GitOps.
 - `pnpm-workspace.yaml` `onlyBuiltDependencies` allows `better-sqlite3`, `esbuild`, `@parcel/watcher`, `vue-demi`. `allowBuilds` also has `msw: true`.
 
 ## navi-core specifics

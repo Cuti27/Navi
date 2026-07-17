@@ -1,4 +1,4 @@
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
 RUN corepack enable && corepack prepare pnpm@11.1.2 --activate
 WORKDIR /app
 
@@ -15,7 +15,7 @@ COPY navi-core/ navi-core/
 RUN pnpm install --frozen-lockfile --filter navi-core
 RUN cd navi-core && pnpm build
 
-FROM node:22-alpine AS production
+FROM node:24-alpine AS production
 RUN corepack enable && corepack prepare pnpm@11.1.2 --activate
 RUN addgroup -g 1001 -S nodejs && adduser -S navi -u 1001
 WORKDIR /app/navi-core
