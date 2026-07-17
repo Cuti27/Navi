@@ -1,5 +1,5 @@
 FROM node:24-alpine AS base
-RUN corepack enable && corepack prepare pnpm@11.1.2 --activate
+RUN corepack enable && corepack prepare pnpm@11.13.1 --activate
 WORKDIR /app
 
 FROM base AS deps
@@ -19,6 +19,9 @@ WORKDIR /app
 
 COPY --from=build /app/frontend/.output ./.output
 COPY --from=deps /app/frontend/node_modules ./node_modules
+COPY --from=deps /app/node_modules/.pnpm /app/node_modules/.pnpm
+
+RUN rm -rf /root/.cache /opt/yarn* /usr/local/lib/node_modules/npm
 
 ENV HOST=0.0.0.0
 ENV PORT=3000

@@ -1,5 +1,5 @@
 FROM node:24-alpine AS base
-RUN corepack enable && corepack prepare pnpm@11.1.2 --activate
+RUN corepack enable && corepack prepare pnpm@11.13.1 --activate
 WORKDIR /app
 
 FROM base AS deps
@@ -16,7 +16,6 @@ RUN pnpm install --frozen-lockfile --filter navi-core
 RUN cd navi-core && pnpm build
 
 FROM node:24-alpine AS production
-RUN corepack enable && corepack prepare pnpm@11.1.2 --activate
 RUN addgroup -g 1001 -S nodejs && adduser -S navi -u 1001
 WORKDIR /app/navi-core
 
@@ -24,8 +23,11 @@ COPY --from=build /app/navi-core/dist ./dist
 COPY --from=build /app/navi-core/drizzle ./drizzle
 COPY --from=build /app/navi-core/mcp.config.json ./
 COPY --from=deps /app/navi-core/node_modules ./node_modules
+COPY --from=deps /app/node_modules/.pnpm /app/node_modules/.pnpm
 
 RUN mkdir -p /app/data && chown -R navi:nodejs /app/data
+
+RUN rm -rf /root/.cache /opt/yarn* /usr/local/lib/node_modules/npm
 
 ENV NODE_ENV=production
 ENV DATABASE_URL=/app/data/navi.db
