@@ -49,6 +49,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Lowercase repository
+        run: echo "REPO_LOWER=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
       - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -63,21 +66,21 @@ jobs:
           file: navi-core/Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository }}/navi-core:latest
-            ${{ env.REGISTRY }}/${{ github.repository }}/navi-core:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/navi-core:latest
+            ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/navi-core:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ github.repository }}/navi-core:${{ github.sha }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/navi-core:${{ github.sha }}
           format: table
           exit-code: 1
           severity: CRITICAL,HIGH
 
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ github.repository }}/navi-core:${{ github.sha }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/navi-core:${{ github.sha }}
           format: sarif
           output: trivy-core.sarif
           severity: CRITICAL,HIGH,MEDIUM
@@ -98,6 +101,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Lowercase repository
+        run: echo "REPO_LOWER=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
       - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -112,21 +118,21 @@ jobs:
           file: frontend/Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository }}/navi-frontend:latest
-            ${{ env.REGISTRY }}/${{ github.repository }}/navi-frontend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/navi-frontend:latest
+            ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/navi-frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ github.repository }}/navi-frontend:${{ github.sha }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/navi-frontend:${{ github.sha }}
           format: table
           exit-code: 1
           severity: CRITICAL,HIGH
 
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ github.repository }}/navi-frontend:${{ github.sha }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/navi-frontend:${{ github.sha }}
           format: sarif
           output: trivy-frontend.sarif
           severity: CRITICAL,HIGH,MEDIUM
