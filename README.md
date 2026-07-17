@@ -1,111 +1,151 @@
 # Navi
 
-Agente de IA privado para Homelab.
+Private AI Agent for Homelab.
 
-Navi es un asistente de inteligencia artificial autocontenido diseñado para ejecutarse dentro de tu clúster doméstico. Está compuesto por un backend de orquestación (`navi-core`) y una interfaz web (`frontend`) que se comunican de forma segura mediante un token maestro.
+Navi is a self-contained artificial intelligence assistant designed to run inside your home cluster. It consists of an orchestration backend (`navi-core`) and a web interface (`frontend`) that communicate securely using a master token.
 
-## Estructura del monorepo
+## Monorepo structure
 
-Este repositorio es un workspace de pnpm con dos paquetes principales:
+This repository is a pnpm workspace with two main packages:
 
-| Paquete | Descripción | Tecnologías |
+| Package | Description | Technologies |
 |---|---|---|
-| [`navi-core/`](./navi-core/README.md) | Backend de orquestación, IA, memoria y herramientas MCP. | Hono, Node.js, Vercel AI SDK, Drizzle ORM, SQLite |
-| [`frontend/`](./frontend/README.md) | Interfaz de usuario web y PWA instalable en iOS, Android y escritorio; preparada también para Tauri v2 en el futuro. | Nuxt 3, Tailwind v4, shadcn-nuxt, Pinia, @vite-pwa/nuxt |
+| [`navi-core/`](./navi-core/README.md) | Orchestration backend, AI, memory, and MCP tools. | Hono, Node.js, Vercel AI SDK, Drizzle ORM, SQLite |
+| [`frontend/`](./frontend/README.md) | Web UI and installable PWA on iOS, Android, and desktop; also ready to target Tauri v2 in the future. | Nuxt 3, Tailwind v4, shadcn-nuxt, Pinia, @vite-pwa/nuxt |
 
-## Requisitos previos
+> 🇪🇸 [Versión en español](./README.es.md)
 
-- [Node.js](https://nodejs.org/) (versión LTS recomendada)
-- [pnpm](https://pnpm.io/) (`shamefully-hoist=true` ya está configurado en `.npmrc`)
+## Prerequisites
 
-## Instalación rápida
+- [Node.js](https://nodejs.org/) (LTS version recommended)
+- [pnpm](https://pnpm.io/) (`shamefully-hoist=true` is already configured in `.npmrc`)
+
+## Quick start
 
 ```bash
-# Instalar todas las dependencias del workspace
+# Install all workspace dependencies
 pnpm install
 
-# Configurar el backend
+# Configure the backend
 cp navi-core/.env.example navi-core/.env
-# Edita navi-core/.env con tus credenciales (AI_MODEL, MASTER_TOKEN, etc.)
+# Edit navi-core/.env with your credentials (AI_MODEL, MASTER_TOKEN, etc.)
 ```
 
-## Comandos principales
+## Main commands
 
-Todos los comandos se ejecutan desde la raíz del monorepo:
+All commands are run from the monorepo root:
 
 ```bash
-# Levantar backend (:3000) y frontend (:3001) en paralelo
+# Start backend (:3000) and frontend (:3001) in parallel
 pnpm dev
 
-# Solo backend
+# Backend only
 pnpm dev:core
 
-# Solo frontend
+# Frontend only
 pnpm dev:web
 
-# Compilar ambos paquetes
+# Build both packages
 pnpm build
 
-# Ejecutar todos los tests
+# Run all tests
 pnpm test
 
-# Ejecutar tests con cobertura
+# Run tests with coverage
 pnpm test:coverage
 
-# Tests E2E (Playwright, levanta el servidor de desarrollo automáticamente)
+# E2E tests (Playwright, dev server starts automatically)
 pnpm test:e2e
 ```
 
-Consulta [`AGENTS.md`](./AGENTS.md) para la lista completa de comandos y convenciones del proyecto.
+See [`AGENTS.md`](./AGENTS.md) for the full command list and project conventions.
 
 ## PWA
 
-El frontend se distribuye como Progressive Web App. Se instala directamente desde el navegador sin necesidad de App Store ni Developer Program. Consulta [`frontend/README.md`](./frontend/README.md#pwa-progressive-web-app) para las instrucciones de instalación en cada plataforma.
+The frontend is distributed as a Progressive Web App. It can be installed directly from the browser without an App Store or Developer Program. See [`frontend/README.md`](./frontend/README.md#pwa-progressive-web-app) for platform-specific installation instructions.
 
-## Desarrollo
+## Docker deployment
 
-1. Copia y configura `navi-core/.env` (ver [navi-core/README.md](./navi-core/README.md#entorno)).
-2. Ejecuta `pnpm dev` para levantar ambos servicios.
-3. Accede a la aplicación en `http://localhost:3001`.
-4. La API documentada con Swagger está disponible en `http://localhost:3000/api/v1/docs`.
+The project includes multi-stage Dockerfiles and a `docker-compose.yml` ready for Portainer GitOps.
+
+### Local deployment
+
+```bash
+# Build images
+docker compose build
+
+# Start services
+docker compose up -d
+```
+
+### Portainer GitOps deployment
+
+1. Create a stack in Portainer → **Git repository**.
+2. Point to this repo, branch `main`, path `docker-compose.yml`.
+3. Enable **GitOps updates** (5-minute polling or webhook).
+4. Define the required environment variables in the stack:
+
+| Variable | Required | Example |
+|---|---|---|
+| `AI_PROVIDER` | Yes | `opencode` |
+| `AI_MODEL` | Yes | `deepseek-v4-flash` |
+| `AI_PROVIDER_API_KEY` | Yes | `skey...` |
+| `MASTER_TOKEN` | Yes | `supersecret` |
+
+5. Deploy. Portainer will run `docker build` automatically.
+
+### GitHub Actions + GHCR
+
+The `.github/workflows/docker-publish.yml` workflow builds images and pushes them to GitHub Container Registry on push to `main`. To use it:
+
+1. `docker-compose.yml` is already configured for user `Cuti27`. If you use a different user, change the `ghcr.io/Cuti27/...` images.
+2. In Portainer, switch the images from `build:` to `image:` to pull from GHCR directly.
+
+## Development
+
+1. Copy and configure `navi-core/.env` (see [navi-core/README.md](./navi-core/README.md#environment)).
+2. Run `pnpm dev` to start both services.
+3. Open the app at `http://localhost:3001`.
+4. The Swagger-documented API is available at `http://localhost:3000/api/v1/docs`.
 
 ## Tests
 
-Ambos paquetes usan **Vitest**:
+Both packages use **Vitest**:
 
 ```bash
-pnpm test                      # Todos los tests
-pnpm --filter navi-core test   # Solo backend
-pnpm --filter frontend test    # Solo frontend
+pnpm test                      # All tests
+pnpm --filter navi-core test   # Backend only
+pnpm --filter frontend test    # Frontend only
 ```
 
-El frontend también incluye tests E2E con Playwright:
+The frontend also includes E2E tests with Playwright:
 
 ```bash
 pnpm --filter frontend test:e2e
 ```
 
-## Búsqueda web
+## Web search
 
-`navi-core` incluye por defecto el MCP server de **Exa** para búsqueda web (requiere `EXA_API_KEY` en `navi-core/.env`) y un servidor MCP **fetch** como fallback sin API key. Consulta [`navi-core/README.md`](./navi-core/README.md#mcp-y-human-in-the-loop-hitl) para más detalles.
+`navi-core` ships with the **Exa** MCP server for web search by default (requires `EXA_API_KEY` in `navi-core/.env`). See [`navi-core/README.md`](./navi-core/README.md#mcp-and-human-in-the-loop-hitl) for more details.
 
-## Seguridad
+## Security
 
-- Todas las rutas de la API (`/api/v1/*`) están protegidas por un **Token Maestro** (`MASTER_TOKEN`).
-- El frontend nunca almacena credenciales del modelo de lenguaje; estas viven únicamente en las variables de entorno de `navi-core`.
+- All API routes (`/api/v1/*`) are protected by a **Master Token** (`MASTER_TOKEN`).
+- The frontend never stores LLM credentials; these live only in `navi-core` environment variables.
 
-## Documentación adicional
+## Additional documentation
 
-- [`AGENTS.md`](./AGENTS.md) — Guía para agentes de código: arquitectura, comandos, convenciones y *gotchas*.
-- [`INIT.md`](./INIT.md) — Requisitos y arquitectura iniciales del proyecto (en español).
-- [`frontend/DESIGN.md`](./frontend/DESIGN.md) — Sistema de diseño "Analogue Blueprint".
-- [`navi-core/README.md`](./navi-core/README.md) — Documentación específica del backend.
-- [`frontend/README.md`](./frontend/README.md) — Documentación específica del frontend.
+- [`AGENTS.md`](./AGENTS.md) — Guide for coding agents: architecture, commands, conventions, and gotchas.
+- [`INIT.md`](./INIT.md) — Initial project requirements and architecture (English).
+- [`INIT.es.md`](./INIT.es.md) — Requisitos y arquitectura iniciales del proyecto (español).
+- [`frontend/DESIGN.md`](./frontend/DESIGN.md) — "Analogue Blueprint" design system.
+- [`navi-core/README.md`](./navi-core/README.md) — Backend-specific documentation.
+- [`frontend/README.md`](./frontend/README.md) — Frontend-specific documentation.
 
-## Convenciones
+## Conventions
 
-- Los mensajes de commit usan prefijos convencionales en español: `feat:`, `fix:`, etc.
-- La API está versionada en ruta: `/api/v1`.
-- Las etiquetas de versionado siguen el formato `navi-core/vX.Y.Z`.
+- Commit messages use conventional prefixes in Spanish: `feat:`, `fix:`, etc.
+- The API is path-versioned: `/api/v1`.
+- Version tags are namespaced, e.g. `navi-core/vX.Y.Z`.
 
-> **Nota:** si modificas cualquier archivo `README.md` del proyecto, actualiza también el resto de documentación afectada para mantener la coherencia entre la raíz, `frontend/` y `navi-core/`.
+> **Note:** if you modify any project `README.md`, update the affected documentation to keep the root, `frontend/`, and `navi-core/` files consistent with each other and with `AGENTS.md`.

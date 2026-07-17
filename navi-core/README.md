@@ -1,48 +1,50 @@
 # navi-core
 
-Backend central de **Navi**, el agente de IA privado para Homelab.
+Core backend of **Navi**, the private AI Agent for Homelab.
 
-Esta carpeta contiene la **Capa de Orquestación y Lógica** del sistema. Es un servidor Node.js construido con [Hono](https://hono.dev/) y diseñado para actuar como puente seguro entre los clientes (frontend/móvil/escritorio) y los distintos servicios del clúster, incluyendo los servidores MCP (Model Context Protocol).
+This folder contains the **Orchestration and Logic Layer** of the system. It is a Node.js server built with [Hono](https://hono.dev/) and designed to act as a secure bridge between clients (frontend/mobile/desktop) and the various services in the cluster, including MCP (Model Context Protocol) servers.
 
-## Objetivo
+> 🇪🇸 [Versión en español](./README.es.md)
 
-`navi-core` es el cerebro orquestador que:
+## Goal
 
-- Expone una API HTTP segura para el chat y la gestión del agente.
-- Valida el **Token Maestro** en todas las peticiones entrantes.
-- Custodia de forma segura la **API Key del LLM** y otras credenciales sensibles (solo en variables de entorno del backend).
-- Gestiona el historial de conversaciones en una base de datos **SQLite** centralizada mediante Drizzle ORM.
-- Construye un **System Prompt dinámico** (fecha, hora e información básica de red) para cada petición al LLM.
-- Implementa la estrategia híbrida de contexto: **ventana deslizante + resúmenes** para no perder memoria ni exceder el contexto del modelo.
-- Transmite las respuestas del LLM en **streaming (SSE)** y emite eventos de estado de las herramientas (Tool Calling) en tiempo real.
-- Actúa como **cliente MCP principal**, conectándose a servidores MCP del entorno.
-- Implementa el flujo **Human-in-the-Loop (HITL)**: pausa la ejecución de cualquier herramienta que modifique el estado del clúster hasta recibir una aprobación explícita del usuario.
+`navi-core` is the orchestrator brain that:
 
-## Tecnologías
+- Exposes a secure HTTP API for chat and agent management.
+- Validates the **Master Token** on every incoming request.
+- Safely holds the **LLM API Key** and other sensitive credentials (only in backend environment variables).
+- Manages conversation history in a centralized **SQLite** database via Drizzle ORM.
+- Builds a **dynamic System Prompt** (date, time, and basic network info) for each LLM request.
+- Implements the hybrid context strategy: **sliding window + summaries** so memory is not lost and the model context is not exceeded.
+- Streams LLM responses via **SSE** and emits real-time Tool Calling status events.
+- Acts as the main **MCP client**, connecting to MCP servers in the environment.
+- Implements the **Human-in-the-Loop (HITL)** flow: pauses execution of any tool that modifies cluster state until it receives explicit user approval.
 
-- [Hono](https://hono.dev/) — framework web ligero y basado en Web Standards.
-- [@hono/zod-openapi](https://github.com/honojs/middleware/tree/main/packages/zod-openapi) — generación de OpenAPI/Swagger.
-- [Vercel AI SDK](https://sdk.vercel.ai/) — integración y streaming con modelos de lenguaje.
-- [Drizzle ORM](https://orm.drizzle.team/) — ORM tipo-seguro para SQLite.
-- [SQLite](https://www.sqlite.org/) + `better-sqlite3` — base de datos local embebida con WAL.
-- [tsx](https://github.com/privatenumber/tsx) — ejecución de TypeScript en desarrollo.
+## Technologies
+
+- [Hono](https://hono.dev/) — lightweight Web Standards-based web framework.
+- [@hono/zod-openapi](https://github.com/honojs/middleware/tree/main/packages/zod-openapi) — OpenAPI/Swagger generation.
+- [Vercel AI SDK](https://sdk.vercel.ai/) — LLM integration and streaming.
+- [Drizzle ORM](https://orm.drizzle.team/) — type-safe ORM for SQLite.
+- [SQLite](https://www.sqlite.org/) + `better-sqlite3` — embedded local database with WAL.
+- [tsx](https://github.com/privatenumber/tsx) — TypeScript execution in development.
 
 ## Scripts
 
 ```bash
-# Instalar dependencias (desde la raíz del monorepo)
+# Install dependencies (from the monorepo root)
 pnpm install
 
-# Desarrollo con hot reload en http://localhost:3000
+# Development with hot reload at http://localhost:3000
 pnpm dev:core
 
-# Compilar TypeScript a dist/
+# Compile TypeScript to dist/
 pnpm --filter navi-core build
 
-# Ejecutar la versión compilada
+# Run the compiled version
 pnpm --filter navi-core start
 
-# Typecheck sin emitir
+# Typecheck without emitting
 pnpm --filter navi-core exec tsc --noEmit
 
 # Tests
@@ -50,146 +52,147 @@ pnpm --filter navi-core test
 pnpm --filter navi-core test:watch
 pnpm --filter navi-core test:coverage
 
-# Generar una nueva migración de Drizzle
+# Generate a new Drizzle migration
 pnpm --filter navi-core exec drizzle-kit generate
 ```
 
-## Entorno
+## Environment
 
-Copia `.env.example` a `.env` y configura al menos las variables obligatorias:
+Copy `.env.example` to `.env` and configure at least the required variables:
 
 ```bash
 cp .env.example .env
 ```
 
-| Variable | Requerida | Descripción | Por defecto |
+| Variable | Required | Description | Default |
 |---|---|---|---|
-| `AI_MODEL` | Sí | Identificador del modelo de lenguaje. | — |
-| `MASTER_TOKEN` | Sí | Token de autenticación Bearer para todas las rutas `/api/v1/*`. | — |
-| `AI_PROVIDER` | No | Proveedor de IA: `openai` u `opencode`. | `openai` |
-| `AI_PROVIDER_API_URL` | No | URL base del proveedor. | — |
-| `AI_PROVIDER_API_KEY` | No | API key del proveedor. | — |
-| `DATABASE_URL` | No | Ruta del archivo SQLite. | `./data/navi.db` |
-| `MEMORY_DIR` | No | Directorio de memoria persistente. | `./data/memory` |
-| `COMPACTION_THRESHOLD` | No | Umbral de compactación de mensajes. | `30` |
-| `AI_SYSTEM_PROMPT` | No | Fragmento adicional del system prompt. | `""` |
-| `EXA_API_KEY` | No | API key de [Exa](https://exa.ai/) para búsquedas web vía MCP. | — |
+| `AI_MODEL` | Yes | Language model identifier. | — |
+| `MASTER_TOKEN` | Yes | Bearer authentication token for all `/api/v1/*` routes. | — |
+| `AI_PROVIDER` | No | AI provider: `openai` or `opencode`. | `openai` |
+| `AI_PROVIDER_API_URL` | No | Provider base URL. | — |
+| `AI_PROVIDER_API_KEY` | No | Provider API key. | — |
+| `DATABASE_URL` | No | SQLite file path. | `./data/navi.db` |
+| `MEMORY_DIR` | No | Persistent memory directory. | `./data/memory` |
+| `COMPACTION_THRESHOLD` | No | Message compaction threshold. | `30` |
+| `AI_SYSTEM_PROMPT` | No | Additional system prompt fragment. | `""` |
+| `CORS_ORIGINS` | No | Allowed origins (comma-separated or `*` for all). | `*` |
+| `EXA_API_KEY` | No | [Exa](https://exa.ai/) API key for web search via MCP. | — |
 
-> `AI_MODEL` es obligatorio: el servidor fallará al arrancar si falta.
-> `MASTER_TOKEN` no tiene valor por defecto; sin él todas las peticiones devolverán `401`.
+> `AI_MODEL` is required: the server will fail to start if missing.
+> `MASTER_TOKEN` has no default; without it all requests will return `401`.
 
-## Arquitectura dentro del monorepo
+## Architecture within the monorepo
 
 ```
 ┌─────────────────┐
-│   Frontend(s)   │  ← Vue/Nuxt + Tauri (web/escritorio/móvil)
+│   Frontend(s)   │  ← Vue/Nuxt + Tauri (web/desktop/mobile)
 └────────┬────────┘
-         │ Token Maestro + SSE
+         │ Master Token + SSE
          ▼
 ┌─────────────────┐
-│   navi-core     │  ← Este proyecto (orquestador + IA + MCP)
+│   navi-core     │  ← This project (orchestrator + AI + MCP)
 │  (Node + Hono)  │
 └────────┬────────┘
          │
     ┌────┴────┐
     ▼         ▼
 ┌───────┐  ┌─────────────┐
-│ SQLite│  │ Servidores  │
-│  DB   │  │    MCP      │
-└───────┘  └─────────────┘
+│ SQLite│  │ MCP servers │
+│  DB   │  └─────────────┘
+└───────┘
 ```
 
-## Estructura de `src/`
+## `src/` structure
 
 ```
 src/
-├── chat/              # Lógica de chat, streaming y compactación
-├── db/                # Cliente SQLite, schema, repositorios y migraciones
-├── memory/            # Memoria interna del agente (store, repo, herramientas)
-├── mcp/               # Configuración y servicio de herramientas MCP
-├── middleware/        # Middlewares de Hono (CORS, logging, masterAuth)
-├── prompts/           # Construcción del system prompt dinámico
-├── providers/         # Fábrica de proveedores de IA
-├── routes/v1/         # Rutas HTTP de la API v1
-├── test/              # Utilidades, factories y mocks de tests
-├── types/             # Tipos compartidos
-└── index.ts           # Punto de entrada
+├── chat/              # Chat logic, streaming, and compaction
+├── db/                # SQLite client, schema, repositories, and migrations
+├── memory/            # Internal agent memory (store, repo, tools)
+├── mcp/               # MCP tool configuration and service
+├── middleware/        # Hono middleware (CORS, logging, masterAuth)
+├── prompts/           # Dynamic system prompt builder
+├── providers/         # AI provider factory
+├── routes/v1/         # API v1 HTTP routes
+├── test/              # Test utilities, factories, and mocks
+├── types/             # Shared types
+└── index.ts           # Entry point
 ```
 
 ## API
 
-Todas las rutas están bajo `/api/v1` y requieren el header:
+All routes are under `/api/v1` and require the header:
 
 ```
 Authorization: Bearer <MASTER_TOKEN>
 ```
 
-La documentación interactiva (Swagger UI) está disponible en `/api/v1/docs` cuando el servidor está en ejecución.
+Interactive documentation (Swagger UI) is available at `/api/v1/docs` when the server is running.
 
-Módulos de ruta principales:
+Main route modules:
 
-- `chat` — streaming de conversaciones.
-- `session` — gestión de sesiones de chat.
-- `approval` — aprobaciones Human-in-the-Loop.
-- `mcp` — listado y ejecución de herramientas MCP.
-- `memory` — herramientas de memoria interna.
+- `chat` — conversation streaming.
+- `session` — chat session management.
+- `approval` — Human-in-the-Loop approvals.
+- `mcp` — MCP tool listing and execution.
+- `memory` — internal memory tools.
 
-## MCP y Human-in-the-Loop (HITL)
+## MCP and Human-in-the-Loop (HITL)
 
-- Los servidores MCP se declaran en `mcp.config.json` y se cargan mediante `mcp-config.ts` → `mcp-tool-service.ts`.
-- Se soportan transportes **HTTP**, **SSE** y **stdio**.
-- `mcp.config.json` admite variables de entorno con la sintaxis `${VAR}` (por ejemplo, en headers o en el comando stdio).
-- Las herramientas listadas en `autoApproveTools` se ejecutan sin confirmación.
-- **Todas las demás herramientas requieren aprobación del usuario** antes de ejecutarse.
-- Las herramientas de memoria de solo lectura están exentas de HITL.
-- El flujo de aprobaciones se gestiona en `routes/v1/approval.route.ts` y sus repositorios asociados.
+- MCP servers are declared in `mcp.config.json` and loaded via `mcp-config.ts` → `mcp-tool-service.ts`.
+- **HTTP**, **SSE**, and **stdio** transports are supported.
+- `mcp.config.json` supports environment variables using the `${VAR}` syntax (for example, in headers or stdio commands).
+- Tools listed in `autoApproveTools` run without confirmation.
+- **All other tools require user approval** before execution.
+- Read-only memory tools are exempt from HITL.
+- The approval flow is managed in `routes/v1/approval.route.ts` and its associated repositories.
 
-### Servidores MCP por defecto
+### Default MCP servers
 
-El archivo `mcp.config.json` incluye de serie:
+The `mcp.config.json` file includes by default:
 
-- **`deepwiki`** (HTTP): documentación de repositorios.
-- **`exa`** (HTTP): búsqueda web y fetch de páginas. Requiere `EXA_API_KEY`. Las herramientas `web_search_exa` y `web_fetch_exa` están auto-apradas.
-- **`fetch`** (stdio): fetch de contenido web sin API key, como fallback cuando Exa no esté disponible. Usa `mcp-fetch-server`.
+- **`deepwiki`** (HTTP): repository documentation.
+- **`exa`** (HTTP): web search and page fetching. Requires `EXA_API_KEY`. The `web_search_exa` and `web_fetch_exa` tools are auto-approved.
+- **`fetch`** (stdio): **temporarily disabled** due to the `private-ip` SSRF vulnerability in `mcp-fetch-server`. It can be re-enabled in `mcp.config.json` once patched.
 
-Para activar Exa, añade tu API key a `navi-core/.env`:
+To enable Exa, add your API key to `navi-core/.env`:
 
 ```bash
 EXA_API_KEY=your_exa_api_key
 ```
 
-El header `Authorization: Bearer ${EXA_API_KEY}` se inyecta automáticamente desde la configuración MCP.
+The `Authorization: Bearer ${EXA_API_KEY}` header is injected automatically from the MCP configuration.
 
-## Persistencia
+## Persistence
 
-- Esquema en `src/db/schema.ts`.
-- Las migraciones de Drizzle se aplican automáticamente al arrancar el servidor.
-- Genera nuevas migraciones con `pnpm --filter navi-core exec drizzle-kit generate`.
-- El directorio `./data/` (base de datos + memoria) se crea en tiempo de ejecución.
+- Schema in `src/db/schema.ts`.
+- Drizzle migrations are applied automatically when the server starts.
+- Generate new migrations with `pnpm --filter navi-core exec drizzle-kit generate`.
+- The `./data/` directory (database + memory) is created at runtime.
 
-> **Importante:** en producción, monta `./data` sobre un volumen físico persistente para evitar perder el estado del agente durante actualizaciones del clúster.
+> **Important:** in production, mount `./data` on a persistent physical volume to avoid losing the agent state during cluster updates.
 
 ## Tests
 
-- **Framework**: Vitest con entorno Node.
-- **Base de datos**: SQLite temporal creada con `mkdtempSync` y migrada con Drizzle.
-- **Infraestructura**: `src/test/setup.ts` exporta `createTestDb()`; factories en `test/factories.ts`; mocks en `test/mocks/`.
-- **Cobertura objetivo**: ≥ 70 % de líneas en `src/` (excluyendo `index.ts` y tipos puros).
+- **Framework**: Vitest with Node environment.
+- **Database**: temporary SQLite created with `mkdtempSync` and migrated with Drizzle.
+- **Infrastructure**: `src/test/setup.ts` exports `createTestDb()`; factories in `test/factories.ts`; mocks in `test/mocks/`.
+- **Coverage target**: ≥ 70 % lines in `src/` (excluding `index.ts` and pure types).
 
-Ejecuta los tests con:
+Run tests with:
 
 ```bash
 pnpm --filter navi-core test
 ```
 
-## Seguridad
+## Security
 
-- El frontend nunca almacena credenciales del LLM. Todas las claves residen exclusivamente en las variables de entorno de este backend.
-- Cada petición a `/api/v1/*` debe incluir el `MASTER_TOKEN` válido.
-- En producción, se recomienda exponer `navi-core` solo dentro de la red del clúster o detrás de un proxy con TLS.
+- The frontend never stores LLM credentials. All keys live exclusively in this backend's environment variables.
+- Every request to `/api/v1/*` must include a valid `MASTER_TOKEN`.
+- In production, expose `navi-core` only inside the cluster network or behind a TLS proxy.
 
-## Notas importantes
+## Important notes
 
-- El proyecto usa ESM (`"type": "module"`). Los imports relativos deben incluir extensión `.js` (p. ej. `./providers/factory-provider.js`), aunque los ficheros fuente sean `.ts`.
-- `tsconfig.json` activa `verbatimModuleSyntax` y `module: NodeNext`; respétalo al añadir nuevos imports.
-- Este servicio debería proporcionar en el futuro un `Dockerfile` y un `docker-compose.yml` para su despliegue como contenedor dentro del Swarm.
+- The project uses ESM (`"type": "module"`). Relative imports must include the `.js` extension (e.g. `./providers/factory-provider.js`), even though source files are `.ts`.
+- `tsconfig.json` enables `verbatimModuleSyntax` and `module: NodeNext`; respect it when adding new imports.
+- This service is deployed as a Docker container. See `docker-compose.yml` at the monorepo root and the [main README](../README.md#docker-deployment) for deployment instructions.

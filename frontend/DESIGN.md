@@ -1,5 +1,7 @@
 ---
 name: Analogue Blueprint
+lang: en
+es: [Versión en español](./DESIGN.es.md)
 colors:
   surface: '#fff8f6'
   surface-dim: '#e8d6d2'

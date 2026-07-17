@@ -1,271 +1,175 @@
-Documento de Requisitos y Arquitectura: Navi (Homelab AI Agent)
+Requirements and Architecture Document: Navi (Homelab AI Agent)
 
-1. Visión General del Proyecto
+> 🇪🇸 [Versión en español](./INIT.es.md)
 
-Crear un agente de Inteligencia Artificial llamado Navi, de dominio específico y multimodal, diseñado para administrar una infraestructura "Homelab" (Docker Swarm), actuar como un "Segundo Cerebro" e interactuar con servicios locales. El agente debe ser seguro, accesible en múltiples plataformas (Móvil y Escritorio), 100% privado en su recolección de datos y altamente extensible mediante el protocolo MCP (Model Context Protocol).
+1. Project Overview
 
-2. Arquitectura del Sistema (Cliente-Servidor en Monorepo)
+Create an Artificial Intelligence agent named Navi, domain-specific and multimodal, designed to manage a "Homelab" infrastructure (Docker Swarm), act as a "Second Brain", and interact with local services. The agent must be secure, accessible on multiple platforms (mobile and desktop), 100% private in data collection, and highly extensible through the MCP (Model Context Protocol).
 
-Aunque el sistema es de uso estrictamente "Single-User" (mono-usuario), se adopta una arquitectura Cliente-Servidor para resolver dos problemas fundamentales: Sincronización multi-dispositivo (mismo historial en PC y móvil) y Topología de red (el backend actúa como puente seguro dentro de la red interna del clúster hacia los MCPs). Todo se gestionará bajo un patrón de Monorepo (ej. pnpm workspaces).
+2. System Architecture (Client-Server in Monorepo)
 
-2.1. Capa de Presentación (Frontend)
+Although the system is strictly "Single-User", a Client-Server architecture is adopted to solve two fundamental problems: multi-device synchronization (same history on PC and mobile) and network topology (the backend acts as a secure bridge inside the cluster's internal network to the MCPs). Everything will be managed under a Monorepo pattern (e.g. pnpm workspaces).
 
-Tecnología: Vue.js 3 / Nuxt (compilado a SSG/SPA).
+2.1. Presentation Layer (Frontend)
 
-Despliegue Multiplataforma: Empaquetable nativamente vía Tauri v2 para iOS, Android, Windows, macOS y Linux.
+Technology: Vue.js 3 / Nuxt (compiled to SSG/SPA).
 
-Responsabilidades:
+Multiplatform Deployment: Packaged natively via Tauri v2 for iOS, Android, Windows, macOS, and Linux.
 
-Interfaz de chat (UI) responsiva con soporte para hilos/sesiones.
+Responsibilities:
 
-Consumo de Streaming (SSE) para renderizar mensajes palabra por palabra y evitar bloqueos en la UI.
+- Responsive chat UI with thread/session support.
+- SSE streaming consumption to render messages word by word and avoid UI blocking.
+- Native/web audio capture.
+- Image upload and preview from camera or gallery.
+- Injection of the Master Token (Authentication) in all outgoing requests.
 
-Captura de audio nativa / web.
+2.2. Orchestration and Logic Layer (Core Backend)
 
-Subida y previsualización de imágenes desde la cámara o galería.
+Technology: Node.js (Hono for its native Web Standards compatibility) + Vercel AI SDK.
 
-Inyección del Token Maestro (Autenticación) en todas las peticiones salientes.
+Local Database: SQLite (with Drizzle ORM) for centralized history persistence.
 
-2.2. Capa de Orquestación y Lógica (Backend Central)
+Responsibilities:
 
-Tecnología: Node.js (Hono por su compatibilidad nativa con Web Standards) + Vercel AI SDK.
+- Safeguard the LLM API Key and validate the Master Token.
+- Dynamic System Prompt: Inject local date, current time, and basic network info into each request to give Navi "temporal awareness".
+- Streaming: Transmit the generated response and status events (Tool Calling) in real time to the Frontend using functions such as `streamText`.
+- LLM context management (Hybrid Strategy: sliding window + summaries).
+- Act as Main MCP Client: Connecting to internal MCP servers (`http://mcp-name:port`).
 
-Base de Datos Local: SQLite (con Drizzle ORM) para la persistencia centralizada del historial.
+2.3. Inference Layer (AI and Processing)
 
-Responsabilidades:
+Multimodal LLM (Brain + Vision): DeepSeek V4 Flash (or similar). Integrated via AI SDK.
 
-Custodiar la API Key del LLM y validar el Token Maestro.
+Speech-to-Text (STT): Local container in the cluster running faster-whisper-server or similar.
 
-System Prompt Dinámico: Inyectar en cada petición la fecha local, hora actual e información básica de red para dotar a Navi de "conciencia temporal".
+2.4. Tools Layer (MCP Servers)
 
-Streaming: Transmitir la respuesta generada y los eventos de estado (Tool Calling) en tiempo real hacia el Frontend usando funciones como streamText.
+Independent microservices in the Swarm:
 
-Gestión del contexto para el LLM (Estrategia Híbrida: ventana deslizante + resúmenes).
+- `mcp-portainer`: Custom development. Exposes container status and restarts.
+- `mcp-arr`: Custom development. Exposes series/movie searches and sends to downloads.
+- `mcp-filesystem`: (Official/Existing). Mapped to the local knowledge base (Obsidian).
 
-Actuar como Cliente MCP Principal: Conectándose a los servidores MCP internos (http://mcp-name:port).
+3. Functional Requirements (Use Cases)
 
-2.3. Capa de Inferencia (IA y Procesamiento)
+Multimodal Interaction (Text, Voice, and Images):
 
-LLM Multimodal (Cerebro + Visión): DeepSeek V4 Flash (o similar). Integrado vía AI SDK.
+- The user must be able to send commands by text or by recording voice notes.
+- The user must be able to attach photographs.
 
-Voz a Texto (STT): Contenedor local en el clúster ejecutando faster-whisper-server o similar.
+Session and Memory Management (Hybrid Strategy):
 
-2.4. Capa de Herramientas (Servidores MCP)
+- Centralized History: The system will store all messages in SQLite (Backend).
+- LLM Context (Compaction): Payload composed of: [Dynamic System Prompt] + [Context Summary] + [Last N messages].
 
-Microservicios independientes en el Swarm:
+Orchestration Management (Portainer) & Multimedia (Arr):
 
-mcp-portainer: Desarrollo propio. Expone estado de contenedores y reinicios.
+- List/restart containers and send movies/series to downloads.
 
-mcp-arr: Desarrollo propio. Expone búsquedas de series/películas y envíos a descargas.
+Memory and Knowledge Management (Obsidian):
 
-mcp-filesystem: (Oficial/Existente). Mapeado a la base de conocimiento local (Obsidian).
+- Search local `.md` notes, draft new notes, and archive images.
 
-3. Requisitos Funcionales (Casos de Uso)
+4. Non-Functional Requirements and Security
 
-Interacción Multimodal (Texto, Voz e Imágenes):
+Master Authentication (Pre-Shared Key): The backend will be protected by a Master Token (e.g. PIN in `.env`).
 
-El usuario debe poder enviar órdenes por texto o grabando notas de voz.
+External Credential Security: The frontend will not store keys. Everything will reside securely in the Backend environment variables.
 
-El usuario debe poder adjuntar fotografías.
+Strict Database Persistence: To prevent agent amnesia during cluster updates, the backend SQLite database MUST always be mounted on a persistent physical volume (e.g. `/DATA/AppData/navi/db`).
 
-Gestión de Sesiones y Memoria (Estrategia Híbrida):
+Containerized Deployment: All server components must provide a Dockerfile and a `docker-compose.yml`.
 
-Historial Centralizado: El sistema almacenará todos los mensajes en SQLite (Backend).
+Human-in-the-Loop (HITL) / Execution Contract: To guarantee total control over the infrastructure, any tool call (Tool Calling) through MCP that modifies the cluster or service state will require explicit confirmation. The Backend will pause execution and send an event to the Frontend, waiting for a boolean (Approved / Rejected) before proceeding.
 
-Contexto LLM (Compactación): Payload compuesto por: [System Prompt Dinámico] + [Resumen del contexto] + [Últimos N mensajes].
+5. Development Phases (Proposed Roadmap)
 
-Gestión de Orquestación (Portainer) & Multimedia (Arr):
+Phase 1: Core Base and Auth: Monorepo structure. Vue Frontend and Node Backend (Hono).
 
-Listar/reiniciar contenedores y enviar películas/series a descargar.
+Phase 2: Persistence, Context, and Vision: SQLite integration (Drizzle) with persistent volumes and Hybrid Strategy.
 
-Gestión de Memoria y Conocimiento (Obsidian):
+Phase 3: Dynamic MCP Architecture and HITL: Backend implements the MCP Client and interruption logic for user tool approval.
 
-Buscar en las notas .md locales, redactar nuevas notas y archivar imágenes.
+Phase 4: Custom Tooling Development: Programming and integration of `mcp-portainer` and `mcp-arr`.
 
-4. Requisitos No Funcionales y Seguridad
+Phase 5: Local Voice Integration: Whisper deployment in the cluster.
 
-Autenticación Maestra (Pre-Shared Key): El backend estará protegido por un Token Maestro (ej. PIN en .env).
+Phase 6: Reactive UI and Multiplatform: Implementation of Navi's visual animations (reactive SVG face) and final packaging using Tauri v2.
 
-Seguridad de Credenciales Externas: El frontend no almacenará claves. Todo residirá de forma segura en las variables de entorno del Backend.
+6. Data Model (SQLite with Drizzle Preview)
 
-Persistencia Estricta de Base de Datos: Para evitar la amnesia del agente en las actualizaciones del clúster, la base de datos SQLite del backend DEBE montarse siempre sobre un volumen físico persistente (ej. /DATA/AppData/navi/db).
+### Table: sessions
 
-Despliegue Contenerizado: Todos los componentes de servidor deben proporcionar un Dockerfile y un docker-compose.yml.
+| Column | Type | Description |
+|---|---|---|
+| id | UUID (PK) | Unique chat session identifier. |
+| title | TEXT | Automatically generated title. |
+| context_summary | TEXT | Compacted conversation summary. |
+| created_at | TIMESTAMP | Creation date. |
+| updated_at | TIMESTAMP | Last modification. |
 
-Human-in-the-Loop (HITL) / Contrato de Ejecución: Para garantizar el control total sobre la infraestructura, cualquier llamada a una herramienta (Tool Calling) a través de MCP que modifique el estado del clúster o servicios, requerirá confirmación explícita. El Backend pausará la ejecución y enviará un evento al Frontend, esperando un booleano (Aprobado / Rechazado) antes de proceder.
+### Table: messages
 
-5. Fases de Desarrollo (Roadmap Propuesto)
+| Column | Type | Description |
+|---|---|---|
+| id | UUID (PK) | Unique message identifier. |
+| session_id | UUID (FK) | Relation to the sessions table. |
+| role | VARCHAR | Sender role: user, assistant, system, or tool. |
+| content | TEXT | Text content of the message. |
+| image_url | TEXT | (Optional) Path of the attached image. |
+| tool_calls | JSON | (Optional) Record of executed MCP tools. |
+| created_at | TIMESTAMP | Send date. |
 
-Fase 1: Core Base y Auth: Estructura del Monorepo. Frontend Vue y Backend Node (Hono).
+7. User Interfaces (UI/UX)
 
-Fase 2: Persistencia, Contexto y Visión: Integración de SQLite (Drizzle) con volúmenes persistentes y Estrategia Híbrida.
+7.1. Main Chat View (The Interactive Core)
 
-Fase 3: Arquitectura MCP Dinámica y HITL: Backend implementa el Cliente MCP y la lógica de interrupción para la aprobación de herramientas por parte del usuario.
+Top Banner (Dashboard and Avatar): A fixed area at the top containing:
 
-Fase 4: Desarrollo de Tooling Propio: Programación e integración de mcp-portainer y mcp-arr.
+- Left (Navi's Face): Interactive component based on an SVG prototype. Controlled through a Vue component and CSS styles, allowing reactive modification of attributes, shapes, and colors according to the agent state:
+  - Idle: Resting / occasional blinking via CSS animations.
+  - Thinking: Processing the prompt (SVG variable modification).
+  - Tool Calling: Interacting with the cluster (in progress).
+  - Awaiting Approval: Paused, blinking with an indicator (waiting for the user to accept or reject the action).
+  - Compacting: Summarizing the database.
+  - Error: Confused or alert state (network failure, API rejected).
+- Right (Metrics): Telemetry panel (backend/network status).
 
-Fase 5: Integración de Voz Local: Despliegue de Whisper en el clúster.
+Chat Area: Infinite scroll space, rendered word by word in streaming.
 
-Fase 6: UI Reactiva y Multiplataforma: Implementación de las animaciones visuales (rostro reactivo en SVG) de Navi y empaquetado final usando Tauri v2.
+Tool Approval Cards (HITL): When the LLM decides to use a tool, an interactive card is rendered in the chat acting as a "contract" before execution:
 
-6. Modelo de Datos (Preview de SQLite con Drizzle)
+- Descriptive icon and tool name (e.g. `mcp-portainer: restart_container`).
+- Friendly description of what it is going to do (e.g. "Navi wants to restart the 'Jellyfin' stack").
+- "Technical details" dropdown showing the JSON payload (so it is possible to debug exactly what data will be sent).
+- Two large, clear buttons: **Authorize** (Green/Primary) and **Cancel Action** (Red/Secondary). If cancelled, the LLM is informed that the user aborted the operation.
 
-Tabla: sessions
+Multimodal Input Bar: Text, attachments (camera/gallery), and microphone.
 
-Columna
+7.2. Sessions Panel (Navigation History)
 
-Tipo
+Split Screen / Overlay Layout:
 
-Descripción
+- Top Half: Background with large-scale Navi avatar (SVG).
+- Bottom Half: List of previous chats grouped by date.
+- Scroll Interaction: As the list is scrolled up, it gradually overlaps the Navi avatar with an elegant blur effect.
 
-id
+7.3. Secondary Views
 
-UUID (PK)
+Link Screen (Login): Minimalist interface asking for the Master Token on first launch.
 
-Identificador único de la sesión de chat.
+Settings View: Local network parameters, list of active MCPs, System Prompt modification, and cache cleanup.
 
-title
+8. Versioning and Releases
 
-TEXT
+To maintain stability and traceability in Homelab deployments, the project will adopt Semantic Versioning (SemVer 2.0.0) for both `navi-core` and future monorepo components.
 
-Título generado automáticamente.
+- Software versions: `MAJOR.MINOR.PATCH` (for example, `0.1.0`).
+- The REST API is already path-versioned (`/api/v1`) to allow future evolution without breaking old clients.
+- Each release will be tagged with a git tag (`navi-core/v0.1.0`).
+- Docker images will be published with semantic tags (`navi-core:0.1.0`, `navi-core:latest`).
+- A `CHANGELOG.md` will be kept per component and breaking changes will be documented in major versions.
 
-context_summary
-
-TEXT
-
-El resumen compactado de la conversación.
-
-created_at
-
-TIMESTAMP
-
-Fecha de creación.
-
-updated_at
-
-TIMESTAMP
-
-Última modificación.
-
-Tabla: messages
-
-Columna
-
-Tipo
-
-Descripción
-
-id
-
-UUID (PK)
-
-Identificador único del mensaje.
-
-session_id
-
-UUID (FK)
-
-Relación con la tabla sessions.
-
-role
-
-VARCHAR
-
-Rol del emisor: user, assistant, system o tool.
-
-content
-
-TEXT
-
-Contenido en texto del mensaje.
-
-image_url
-
-TEXT
-
-(Opcional) Ruta de la imagen adjunta.
-
-tool_calls
-
-JSON
-
-(Opcional) Registro de las herramientas MCP ejecutadas.
-
-created_at
-
-TIMESTAMP
-
-Fecha de envío.
-
-7. Interfaces de Usuario (UI/UX)
-
-7.1. Vista Principal de Chat (El núcleo interactivo)
-
-Banner Superior (Dashboard y Avatar): Un área fija en la parte superior que contiene:
-
-Izquierda (El Rostro de Navi): Componente interactivo basado en un prototipo SVG. Se controla a través de un componente Vue y estilos CSS, permitiendo modificar atributos, formas y colores de manera reactiva según el estado del agente:
-
-Idle: Reposo / Parpadeo ocasional mediante animaciones CSS.
-
-Thinking: Procesando el prompt (modificación de variables SVG).
-
-Tool Calling: Interactuando con el clúster (En progreso).
-
-Awaiting Approval: Pausado, parpadeando con un indicador (esperando que el usuario acepte o rechace la acción).
-
-Compacting: Resumiendo base de datos.
-
-Error: Estado confuso o de alerta (falla de red, API rechazada).
-
-Derecha (Métricas): Panel de telemetría (estado de red/backend).
-
-Área de Chat: Espacio con scroll infinito, renderizado en streaming palabra por palabra.
-
-Tarjetas de Aprobación de Tools (HITL): Cuando el LLM decide usar una herramienta, se renderiza una tarjeta interactiva en el chat que actúa como "contrato" antes de la ejecución:
-
-Icono descriptivo y nombre de la herramienta (ej. mcp-portainer: restart_container).
-
-Descripción amigable de lo que va a hacer (ej. "Navi quiere reiniciar el stack 'Jellyfin'").
-
-Menú desplegable "Detalles técnicos" que muestre el payload en JSON (para poder depurar qué datos va a enviar exactamente).
-
-Dos botones grandes y claros: 
-
-$$Autorizar$$
-
- (Verde/Primario) y 
-
-$$Cancelar Acción$$
-
- (Rojo/Secundario). Si se cancela, se informa al LLM de que el usuario abortó la operación.
-
-Barra de Input Multimodal: Texto, adjuntos (cámara/galería) y micrófono.
-
-7.2. Panel de Sesiones (Historial de Navegación)
-
-Layout de Pantalla Dividida (Split Screen / Overlay):
-
-Mitad Superior: Fondo con el avatar visual (SVG) de Navi a gran escala.
-
-Mitad Inferior: Lista de chats previos agrupados por fechas.
-
-Interacción de Scroll: Al scrollear la lista hacia arriba, esta se superpone gradualmente sobre el avatar de Navi mediante un difuminado elegante.
-
-7.3. Vistas Secundarias
-
-Pantalla de Vínculo (Login): Interfaz minimalista que solicita el Token Maestro en el primer inicio.
-
-Vista de Configuración: Parámetros de red local, listado de MCPs activos, modificación del System Prompt y limpieza de caché.
-
-8. Versionado y Releases
-
-Para mantener estabilidad y trazabilidad en los despliegues del Homelab, el proyecto adoptará Semantic Versioning (SemVer 2.0.0) tanto para navi-core como para futuros componentes del monorepo.
-
-- Versiones del software: `MAJOR.MINOR.PATCH` (por ejemplo, `0.1.0`).
-- La API REST ya está versionada en path (`/api/v1`) para permitir evoluciones futuras sin romper clientes antiguos.
-- Cada release se etiquetará con un git tag (`navi-core/v0.1.0`).
-- Las imágenes Docker se publicarán con tags semánticos (`navi-core:0.1.0`, `navi-core:latest`).
-- Se mantendrá un `CHANGELOG.md` por componente y se documentarán los cambios breaking en versiones mayores.
-
-Este esquema permite desplegar mejoras de forma controlada, realizar rollback rápido y garantizar compatibilidad predecible entre frontend y backend.
+This scheme allows controlled deployment of improvements, quick rollback, and predictable compatibility between frontend and backend.

@@ -1,5 +1,7 @@
 # AGENTS.md
 
+> 🇪🇸 [Versión en español](./AGENTS.es.md)
+
 Guidance for OpenCode sessions working in this repo. Read this before editing.
 
 ## Monorepo layout
@@ -9,7 +11,7 @@ pnpm workspace with two packages:
 - `navi-core/` — Hono + Node.js backend. ESM (`"type": "module"`), entrypoint `src/index.ts`. Serves `/api/v1/*` on port **3000** (hardcoded).
 - `frontend/` — Nuxt 3 + Tailwind v4 + shadcn-nuxt + Pinia, targetable via Tauri v2. Dev server on port **3001**.
 
-Root `package.json` orchestrates both via `concurrently`. Reference docs: `INIT.md` (Spanish requirements/architecture), `frontend/DESIGN.md` (design system "Analogue Blueprint").
+Root `package.json` orchestrates both via `concurrently`. Reference docs: `INIT.md` (requirements/architecture), `frontend/DESIGN.md` (design system "Analogue Blueprint"). Spanish versions: `INIT.es.md`, `frontend/DESIGN.es.md`.
 
 ## Commands
 
@@ -35,6 +37,9 @@ pnpm --filter frontend typecheck  # vue-tsc --noEmit (the only package with a ty
 pnpm --filter frontend generate   # nuxt generate (static site)
 pnpm --filter frontend preview    # nuxt preview (preview generated site)
 pnpm --filter navi-core exec drizzle-kit generate   # create a new SQLite migration
+docker compose build              # build both Docker images
+docker compose up -d              # start services in background
+docker compose down               # stop services
 ```
 
 ### Verification gotchas
@@ -43,7 +48,8 @@ pnpm --filter navi-core exec drizzle-kit generate   # create a new SQLite migrat
 - **Only `frontend` has a `typecheck` script.** `pnpm typecheck` at root works (frontend only, navi-core skipped). To typecheck backend: `pnpm --filter navi-core exec tsc --noEmit` or `pnpm build`.
 - **Both packages have vitest with actual tests.** Test pattern: co-located `__tests__/*.test.ts` or `__tests__/*.spec.ts`.
 - **Vitest `globals: false`** in both configs — import `describe`/`it`/`expect` explicitly from `vitest`.
-- **No CI pipeline** (no `.github/workflows`). No Dockerfile yet.
+- **CI pipeline** — `.github/workflows/docker-publish.yml` builds and pushes Docker images to GHCR on push to `main`.
+- **Dockerfiles** — `navi-core/Dockerfile` (multi-stage, Node 22 Alpine), `frontend/Dockerfile` (multi-stage, Node 22 Alpine). `docker-compose.yml` at repo root for Portainer GitOps.
 - `pnpm-workspace.yaml` `onlyBuiltDependencies` allows `better-sqlite3`, `esbuild`, `@parcel/watcher`, `vue-demi`. `allowBuilds` also has `msw: true`.
 
 ## navi-core specifics
@@ -127,7 +133,7 @@ Core coverage target: **≥ 70 %** lines in `src/` (excl. `index.ts`, pure typ
 ### MCP + HITL
 
 - MCP servers declared in `navi-core/mcp.config.json`; `mcp-config.ts` → `mcp-tool-service.ts`. Supports **HTTP**, **SSE**, and **stdio** transports. Config values can include environment variables using `${VAR}` syntax.
-- Default servers: `deepwiki` (HTTP docs), `exa` (HTTP web search, requires `EXA_API_KEY`), and `fetch` (stdio URL fetch fallback via `mcp-fetch-server`).
+- Default servers: `deepwiki` (HTTP docs), `exa` (HTTP web search, requires `EXA_API_KEY`). The `fetch` stdio server is currently disabled due to the `private-ip` SSRF vulnerability in `mcp-fetch-server`.
 - Tools listed under `autoApproveTools` run without confirmation; **all other tools require Human-in-the-Loop approval** (approval flow in `routes/v1/approval.route.ts`, repos in `src/db/repositories/`).
 - `src/memory/` implements in-repo memory (store + repository + tools + context builder) and is reindexed on boot (`memoryRepository.reindexAll()`). Read-only memory tool names are exempted from HITL.
 
@@ -157,10 +163,20 @@ Core coverage target: **≥ 70 %** lines in `src/` (excl. `index.ts`, pure typ
 
 ## Documentation (READMEs)
 
-The repository has README files at three levels:
+The repository has README files at three levels, each with an English default and a Spanish translation:
 
 - `README.md` (root) — high-level project overview, quick start, and cross-package commands.
+- `README.es.md` (root) — versión en español.
 - `frontend/README.md` — frontend-specific setup, stack, scripts, and structure.
+- `frontend/README.es.md` — versión en español.
 - `navi-core/README.md` — backend-specific setup, environment, architecture, and API details.
+- `navi-core/README.es.md` — versión en español.
+
+Additional reference docs:
+
+- `INIT.md` — initial project requirements and architecture (English).
+- `INIT.es.md` — requisitos y arquitectura iniciales (español).
+- `frontend/DESIGN.md` — "Analogue Blueprint" design system (English).
+- `frontend/DESIGN.es.md` — sistema de diseño "Analogue Blueprint" (español).
 
 **Keep READMEs in sync:** if a change affects functionality, commands, environment variables, architecture, or conventions that are documented in any README, update the relevant README file(s) before finishing the task. When a change spans multiple packages, ensure the root, `frontend/`, and `navi-core/` READMEs remain consistent with each other and with `AGENTS.md`.
