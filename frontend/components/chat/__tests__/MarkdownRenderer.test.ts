@@ -46,4 +46,14 @@ describe('MarkdownRenderer', () => {
     })
     expect(wrapper.html()).not.toContain('<script>')
   })
+
+  it('sanitizes event handlers in raw HTML', () => {
+    const wrapper = mount(MarkdownRenderer, {
+      props: { content: '<img src="x" onerror="alert(1)">' },
+    })
+    // markdown-it escapes raw HTML, and sanitize-html strips any dangerous
+    // attributes if html were enabled. The raw tag must not appear as DOM.
+    expect(wrapper.html()).not.toContain('<img')
+    expect(wrapper.html()).toContain('&lt;img')
+  })
 })

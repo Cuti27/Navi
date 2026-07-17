@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MarkdownIt from 'markdown-it'
+import sanitizeHtml from 'sanitize-html'
 import remend from 'remend'
 
 const props = defineProps<{
@@ -13,7 +14,28 @@ const md = new MarkdownIt({
   typographer: true,
 })
 
-const rendered = computed(() => md.render(remend(props.content)))
+const rendered = computed(() => {
+  const rawHtml = md.render(remend(props.content))
+  // Sanitize the rendered HTML while keeping Markdown's safe output intact.
+  // Markdown-it is already configured with html: false; sanitize-html adds a
+  // second layer of defence against event handlers, data attributes and
+  // javascript: URLs.
+  return sanitizeHtml(rawHtml, {
+    allowedTags: [
+      'p', 'br', 'strong', 'em', 'del', 's', 'a', 'ul', 'ol', 'li',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'code', 'pre',
+      'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'div',
+      'span', 'sup', 'sub',
+    ],
+    allowedAttributes: {
+      a: ['href', 'title', 'target', 'rel'],
+      img: ['src', 'alt'],
+      '*': ['class'],
+    },
+    allowedSchemes: ['http', 'https', 'mailto'],
+    disallowedTagsMode: 'discard',
+  })
+})
 </script>
 
 <template>

@@ -6,7 +6,7 @@ export default defineNuxtConfig({
   devServer: {
     port: 3001,
   },
-  devtools: { enabled: true },
+  devtools: { enabled: process.env.NODE_ENV !== 'production' },
   experimental: {
     appManifest: false,
   },
