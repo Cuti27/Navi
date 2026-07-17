@@ -1,6 +1,6 @@
 services:
   navi-core:
-    image: ghcr.io/Cuti27/navi-core:latest
+    image: ghcr.io/cuti27/navi/navi-core:latest
     build:
       context: .
       dockerfile: navi-core/Dockerfile
@@ -22,7 +22,7 @@ services:
       - EXA_API_KEY=${EXA_API_KEY:-}
 
   frontend:
-    image: ghcr.io/Cuti27/navi-frontend:latest
+    image: ghcr.io/cuti27/navi/navi-frontend:latest
     build:
       context: .
       dockerfile: frontend/Dockerfile
