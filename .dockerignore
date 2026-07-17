@@ -1,0 +1,17 @@
+node_modules
+.git
+.gitignore
+.DS_Store
+*.log
+coverage
+test-results
+playwright-report
+.playwright-mcp
+output
+.nuxt
+dist
+.env
+.env.local
+.env.*.local
+*.md
+!README.md
