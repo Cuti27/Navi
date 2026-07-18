@@ -32,6 +32,6 @@ EXPOSE 3000
 USER navi
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD wget -qO- http://localhost:3000 > /dev/null || exit 1
+  CMD wget -qO- http://127.0.0.1:3000 > /dev/null || exit 1
 
 CMD ["node", ".output/server/index.mjs"]
