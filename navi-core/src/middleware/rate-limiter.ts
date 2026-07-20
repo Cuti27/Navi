@@ -15,7 +15,6 @@ export function createRateLimiter(): MiddlewareHandler {
         },
         statusCode: 429,
         standardHeaders: true,
-        legacyHeaders: false,
         keyGenerator: (c) => {
             const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim()
                 || c.req.header("x-real-ip")

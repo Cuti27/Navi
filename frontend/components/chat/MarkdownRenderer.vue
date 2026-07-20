@@ -34,6 +34,15 @@ const rendered = computed(() => {
     },
     allowedSchemes: ['http', 'https', 'mailto'],
     disallowedTagsMode: 'discard',
+    transformTags: {
+      a: (tagName, attribs) => ({
+        tagName,
+        attribs: {
+          ...attribs,
+          rel: 'noopener noreferrer',
+        },
+      }),
+    },
   })
 })
 </script>
