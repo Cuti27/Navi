@@ -90,7 +90,7 @@ docker compose up -d
 | `AI_PROVIDER` | Yes | `opencode` |
 | `AI_MODEL` | Yes | `deepseek-v4-flash` |
 | `AI_PROVIDER_API_KEY` | Yes | `skey...` |
-| `MASTER_TOKEN` | Yes | `supersecret` |
+| `MASTER_TOKEN` | Yes | `REPLACE_WITH_A_STRONG_RANDOM_TOKEN` (generate with `openssl rand -hex 32`) |
 
 5. Deploy. Portainer will run `docker build` automatically.
 

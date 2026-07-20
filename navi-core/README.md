@@ -67,7 +67,7 @@ cp .env.example .env
 | Variable | Required | Description | Default |
 |---|---|---|---|
 | `AI_MODEL` | Yes | Language model identifier. | — |
-| `MASTER_TOKEN` | Yes | Bearer authentication token for all `/api/v1/*` routes. | — |
+| `MASTER_TOKEN` | Yes | Bearer authentication token for all `/api/v1/*` routes. Generate with `openssl rand -hex 32`. | — |
 | `AI_PROVIDER` | No | AI provider: `openai` or `opencode`. | `openai` |
 | `AI_PROVIDER_API_URL` | No | Provider base URL. | — |
 | `AI_PROVIDER_API_KEY` | No | Provider API key. | — |
