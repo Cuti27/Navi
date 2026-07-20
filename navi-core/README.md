@@ -75,11 +75,12 @@ cp .env.example .env
 | `MEMORY_DIR` | No | Persistent memory directory. | `./data/memory` |
 | `COMPACTION_THRESHOLD` | No | Message compaction threshold. | `30` |
 | `AI_SYSTEM_PROMPT` | No | Additional system prompt fragment. | `""` |
-| `CORS_ORIGINS` | No | Allowed origins (comma-separated or `*` for all). | `*` |
+| `CORS_ORIGINS` | Yes | Allowed origins (comma-separated list). | — |
 | `EXA_API_KEY` | No | [Exa](https://exa.ai/) API key for web search via MCP. | — |
 
 > `AI_MODEL` is required: the server will fail to start if missing.
 > `MASTER_TOKEN` has no default; without it all requests will return `401`.
+> `CORS_ORIGINS` is now required: the server will fail to start if missing.
 
 ## Architecture within the monorepo
 

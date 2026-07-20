@@ -18,7 +18,7 @@ services:
       - AI_SYSTEM_PROMPT=${AI_SYSTEM_PROMPT:-}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - COMPACTION_THRESHOLD=${COMPACTION_THRESHOLD:-30}
-      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - CORS_ORIGINS=${CORS_ORIGINS}
       - EXA_API_KEY=${EXA_API_KEY:-}
 
   frontend:
