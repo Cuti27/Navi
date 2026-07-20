@@ -24,11 +24,12 @@ describe('MarkdownRenderer', () => {
     expect(wrapper.html()).toContain('<code>')
   })
 
-  it('renders links', () => {
+  it('renders links with rel noopener noreferrer', () => {
     const wrapper = mount(MarkdownRenderer, {
       props: { content: '[click](https://example.com)' },
     })
     expect(wrapper.html()).toContain('<a href')
+    expect(wrapper.html()).toContain('rel="noopener noreferrer"')
   })
 
   it('renders lists', () => {

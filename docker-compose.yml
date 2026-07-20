@@ -1,6 +1,6 @@
 services:
   navi-core:
-    image: ghcr.io/cuti27/navi/navi-core:latest
+    image: ghcr.io/${GITHUB_USER:-cuti27}/navi/navi-core:latest
     build:
       context: .
       dockerfile: navi-core/Dockerfile
@@ -18,11 +18,11 @@ services:
       - AI_SYSTEM_PROMPT=${AI_SYSTEM_PROMPT:-}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - COMPACTION_THRESHOLD=${COMPACTION_THRESHOLD:-30}
-      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - CORS_ORIGINS=${CORS_ORIGINS}
       - EXA_API_KEY=${EXA_API_KEY:-}
 
   frontend:
-    image: ghcr.io/cuti27/navi/navi-frontend:latest
+    image: ghcr.io/${GITHUB_USER:-cuti27}/navi/navi-frontend:latest
     build:
       context: .
       dockerfile: frontend/Dockerfile

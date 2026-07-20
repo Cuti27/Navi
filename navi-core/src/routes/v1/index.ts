@@ -28,18 +28,20 @@ export function createV1Routes(options: V1RoutesOptions) {
     app.route("/", createSessionRoute(options.sessionRepository, options.messageRepository))
     app.route("/", createMemoryRoute(options.memoryRepository))
 
-    app.doc("/openapi.json", {
-        openapi: "3.0.0",
-        info: {
-            version: "1.0.0",
-            title: "Navi Core API",
-        },
-        servers: [
-            { url: "/api/v1" },
-        ],
-    })
+    if (process.env.NODE_ENV && process.env.NODE_ENV !== "production") {
+        app.doc("/openapi.json", {
+            openapi: "3.0.0",
+            info: {
+                version: "1.0.0",
+                title: "Navi Core API",
+            },
+            servers: [
+                { url: "/api/v1" },
+            ],
+        })
 
-    app.get("/docs", swaggerUI({ url: "/api/v1/openapi.json" }))
+        app.get("/docs", swaggerUI({ url: "/api/v1/openapi.json" }))
+    }
 
     return app
 }

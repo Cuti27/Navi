@@ -28,7 +28,7 @@ pnpm test:e2e                   # Playwright E2E (frontend, starts dev server au
 pnpm --filter navi-core test    # backend vitest (src/**/__tests__/*.test.ts)
 pnpm --filter navi-core test:watch
 pnpm --filter navi-core test:coverage
-pnpm --filter navi-core exec tsc --noEmit   # typecheck backend
+pnpm --filter navi-core typecheck            # typecheck backend (tsc --noEmit)
 pnpm --filter frontend test     # frontend vitest (nuxt env via @nuxt/test-utils)
 pnpm --filter frontend test:watch
 pnpm --filter frontend test:coverage
@@ -44,8 +44,7 @@ docker compose down               # stop services
 
 ### Verification gotchas
 
-- **No linter or formatter installed** — no ESLint/Prettier config in either package. `pnpm lint` errors.
-- **Only `frontend` has a `typecheck` script.** `pnpm typecheck` at root works (frontend only, navi-core skipped). To typecheck backend: `pnpm --filter navi-core exec tsc --noEmit` or `pnpm build`.
+- **Only `navi-core` and `frontend` have `typecheck` scripts.** `pnpm typecheck` at root works for both packages (`pnpm -r typecheck`). To typecheck a single package: `pnpm --filter navi-core typecheck` or `pnpm --filter frontend typecheck`.
 - **Both packages have vitest with actual tests.** Test pattern: co-located `__tests__/*.test.ts` or `__tests__/*.spec.ts`.
 - **Vitest `globals: false`** in both configs — import `describe`/`it`/`expect` explicitly from `vitest`.
 - **CI pipeline** — `.github/workflows/docker-publish.yml` builds and pushes Docker images to GHCR on push to `main`.

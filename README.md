@@ -90,7 +90,7 @@ docker compose up -d
 | `AI_PROVIDER` | Yes | `opencode` |
 | `AI_MODEL` | Yes | `deepseek-v4-flash` |
 | `AI_PROVIDER_API_KEY` | Yes | `skey...` |
-| `MASTER_TOKEN` | Yes | `supersecret` |
+| `MASTER_TOKEN` | Yes | `REPLACE_WITH_A_STRONG_RANDOM_TOKEN` (generate with `openssl rand -hex 32`) |
 
 5. Deploy. Portainer will run `docker build` automatically.
 
@@ -98,8 +98,9 @@ docker compose up -d
 
 The `.github/workflows/docker-publish.yml` workflow builds images and pushes them to GitHub Container Registry on push to `main`. To use it:
 
-1. `docker-compose.yml` is already configured for user `Cuti27`. If you use a different user, change the `ghcr.io/Cuti27/...` images.
-2. In Portainer, switch the images from `build:` to `image:` to pull from GHCR directly.
+1. Set `GITHUB_USER` to your GitHub username when running docker-compose (defaults to `cuti27`). You can override it: `GITHUB_USER=youruser docker compose up -d`.
+2. In Portainer, define the `GITHUB_USER` environment variable in the stack or switch the images from `build:` to `image:` to pull from GHCR directly.
+3. The CI workflow uses `${{ github.repository_owner }}` automatically, so no additional configuration is needed in GitHub Actions.
 
 ## Development
 

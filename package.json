@@ -9,7 +9,6 @@
     "dev:web": "pnpm --filter frontend dev",
     "build": "pnpm -r build",
     "start": "pnpm --filter navi-core start",
-    "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r --if-present test",
     "test:coverage": "pnpm -r --if-present test:coverage",

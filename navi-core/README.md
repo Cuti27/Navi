@@ -45,7 +45,7 @@ pnpm --filter navi-core build
 pnpm --filter navi-core start
 
 # Typecheck without emitting
-pnpm --filter navi-core exec tsc --noEmit
+pnpm --filter navi-core typecheck
 
 # Tests
 pnpm --filter navi-core test
@@ -67,7 +67,7 @@ cp .env.example .env
 | Variable | Required | Description | Default |
 |---|---|---|---|
 | `AI_MODEL` | Yes | Language model identifier. | — |
-| `MASTER_TOKEN` | Yes | Bearer authentication token for all `/api/v1/*` routes. | — |
+| `MASTER_TOKEN` | Yes | Bearer authentication token for all `/api/v1/*` routes. Generate with `openssl rand -hex 32`. | — |
 | `AI_PROVIDER` | No | AI provider: `openai` or `opencode`. | `openai` |
 | `AI_PROVIDER_API_URL` | No | Provider base URL. | — |
 | `AI_PROVIDER_API_KEY` | No | Provider API key. | — |
@@ -75,11 +75,13 @@ cp .env.example .env
 | `MEMORY_DIR` | No | Persistent memory directory. | `./data/memory` |
 | `COMPACTION_THRESHOLD` | No | Message compaction threshold. | `30` |
 | `AI_SYSTEM_PROMPT` | No | Additional system prompt fragment. | `""` |
-| `CORS_ORIGINS` | No | Allowed origins (comma-separated or `*` for all). | `*` |
+| `CORS_ORIGINS` | Yes | Allowed origins (comma-separated list). | — |
 | `EXA_API_KEY` | No | [Exa](https://exa.ai/) API key for web search via MCP. | — |
+| `GITHUB_USER` | No | GitHub username for Docker image namespace when using docker-compose. | `cuti27` |
 
 > `AI_MODEL` is required: the server will fail to start if missing.
 > `MASTER_TOKEN` has no default; without it all requests will return `401`.
+> `CORS_ORIGINS` is now required: the server will fail to start if missing.
 
 ## Architecture within the monorepo
 
