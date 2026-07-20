@@ -77,6 +77,7 @@ cp .env.example .env
 | `AI_SYSTEM_PROMPT` | No | Additional system prompt fragment. | `""` |
 | `CORS_ORIGINS` | No | Allowed origins (comma-separated or `*` for all). | `*` |
 | `EXA_API_KEY` | No | [Exa](https://exa.ai/) API key for web search via MCP. | — |
+| `GITHUB_USER` | No | GitHub username for Docker image namespace when using docker-compose. | `cuti27` |
 
 > `AI_MODEL` is required: the server will fail to start if missing.
 > `MASTER_TOKEN` has no default; without it all requests will return `401`.

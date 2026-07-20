@@ -81,6 +81,7 @@ El frontend lee la URL base de la API desde la variable pública de Nuxt:
 | Variable | Descripción | Por defecto |
 |---|---|---|
 | `NUXT_PUBLIC_API_BASE` | Base URL de `navi-core` | `http://localhost:3000/api/v1` |
+| `GITHUB_USER` | Usuario de GitHub para el namespace de imágenes Docker (solo relevante al construir con docker-compose) | `cuti27` |
 
 No es necesario configurar claves de modelo de lenguaje en el frontend; todas las credenciales residen en el backend.
 

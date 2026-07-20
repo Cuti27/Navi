@@ -77,6 +77,7 @@ cp .env.example .env
 | `AI_SYSTEM_PROMPT` | No | Fragmento adicional del system prompt. | `""` |
 | `CORS_ORIGINS` | No | Orígenes permitidos (separados por comas o `*` para todos). | `*` |
 | `EXA_API_KEY` | No | API key de [Exa](https://exa.ai/) para búsquedas web vía MCP. | — |
+| `GITHUB_USER` | No | Usuario de GitHub para el namespace de imágenes Docker al usar docker-compose. | `cuti27` |
 
 > `AI_MODEL` es obligatorio: el servidor fallará al arrancar si falta.
 > `MASTER_TOKEN` no tiene valor por defecto; sin él todas las peticiones devolverán `401`.
