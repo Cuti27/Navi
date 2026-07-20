@@ -45,7 +45,7 @@ pnpm --filter navi-core build
 pnpm --filter navi-core start
 
 # Typecheck sin emitir
-pnpm --filter navi-core exec tsc --noEmit
+pnpm --filter navi-core typecheck
 
 # Tests
 pnpm --filter navi-core test
