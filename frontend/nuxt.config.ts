@@ -108,7 +108,7 @@ export default defineNuxtConfig({
         { name: 'apple-mobile-web-app-title', content: 'Navi' },
         { name: 'mobile-web-app-capable', content: 'yes' },
         { name: 'theme-color', content: '#99462a' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
       ],
       link: [
         { rel: 'apple-touch-icon', href: '/icon.png' },
