@@ -15,6 +15,9 @@ import { createV1Routes } from "./routes/v1/index.js"
 import { requestLogger } from "./middleware/request-logger.js"
 import { getLogger } from "./logger/logger.js"
 import { masterAuth } from "./middleware/auth.js"
+import { createRateLimiter } from "./middleware/rate-limiter.js"
+import { createBodySizeLimit } from "./middleware/body-size-limit.js"
+import { createSecurityHeaders } from "./middleware/security-headers.js"
 import { createDb } from "./db/client.js"
 import { DrizzleSessionRepository } from "./db/repositories/session.repository.js"
 import { DrizzleMessageRepository } from "./db/repositories/message.repository.js"
@@ -97,14 +100,22 @@ const app = new Hono()
 
 app.get("/health", (c) => c.json({ status: "ok" }))
 
-const corsOrigins = process.env.CORS_ORIGINS ?? "*"
-const allowedOrigins = corsOrigins === "*" ? "*" : corsOrigins.split(",").map(o => o.trim())
+const corsOrigins = requireEnv("CORS_ORIGINS")
+const allowedOrigins = corsOrigins.split(",").map(o => o.trim())
 
 app.use("/api/v1/*", cors({
     origin: allowedOrigins,
     allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
 }))
+
+app.use("/api/v1/*", createSecurityHeaders())
+
+const rateLimit = createRateLimiter()
+app.use("/api/v1/*", rateLimit)
+
+const bodySizeLimit = createBodySizeLimit()
+app.use("/api/v1/*", bodySizeLimit)
 
 app.use("/api/v1/*", requestLogger)
 app.use("/api/v1/*", masterAuth)
