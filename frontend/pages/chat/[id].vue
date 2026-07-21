@@ -70,7 +70,7 @@ watch(sessionId, () => {
 </script>
 
 <template>
-  <div class="flex flex-col md:flex-row h-screen bg-background max-w-full overflow-hidden">
+  <div class="flex flex-col md:flex-row h-dvh bg-background max-w-full overflow-hidden">
     <!-- Left: large Navi on desktop -->
     <div
       data-testid="chat-navi-column"
@@ -89,7 +89,7 @@ watch(sessionId, () => {
       class="flex flex-col flex-1 min-w-0 md:h-full"
     >
       <!-- Navbar -->
-      <div class="shrink-0 h-14 border-b border-border flex items-center px-4 md:px-6 gap-3 bg-card min-w-0">
+      <div class="shrink-0 h-14 border-b border-border flex items-center px-4 md:px-6 gap-3 bg-card min-w-0 pt-safe">
         <Button variant="ghost" size="icon" class="shrink-0" @click="router.push('/')">
           <ArrowLeft class="h-5 w-5" />
         </Button>
@@ -125,7 +125,7 @@ watch(sessionId, () => {
       </div>
 
       <!-- Composer: pending approvals + input -->
-      <div class="shrink-0 border-t border-border bg-card p-3 flex flex-col gap-2">
+      <div class="shrink-0 border-t border-border bg-card p-3 flex flex-col gap-2 pb-safe">
         <ApprovalCard
           v-for="approval in pendingApprovals"
           :key="approval.approvalId"

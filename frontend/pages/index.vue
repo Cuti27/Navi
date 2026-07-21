@@ -42,7 +42,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col md:flex-row h-screen overflow-hidden bg-background">
+  <div class="flex flex-col md:flex-row h-dvh overflow-hidden bg-background">
     <!-- Navi column -->
     <div
       data-testid="home-navi-column"
@@ -60,7 +60,7 @@ onMounted(() => {
       data-testid="home-sessions-column"
       class="relative z-10 flex-1 min-h-0 bg-background rounded-t-2xl -mt-6 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.08)] md:h-full md:rounded-none md:mt-0 md:shadow-none"
     >
-      <div class="p-4 md:px-6 border-b border-border flex items-center justify-between shrink-0 bg-background rounded-t-2xl">
+      <div class="p-4 md:px-6 border-b border-border flex items-center justify-between shrink-0 bg-background rounded-t-2xl pt-safe">
         <h1 class="headline-md">Conversaciones</h1>
         <Button size="sm" :disabled="isLoading" @click="createNewSession">
           <Plus class="mr-1 h-4 w-4" />
