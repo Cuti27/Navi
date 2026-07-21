@@ -7,6 +7,9 @@ test.describe('chat page', () => {
     await context.addCookies([
       { name: 'navi-token', value: 'test-token', domain: 'localhost', path: '/' },
     ])
+    await page.addInitScript(() => {
+      localStorage.setItem('navi-token', 'test-token')
+    })
 
     await page.route('**/api/v1/sessions/**', async (route) => {
       await route.fulfill({

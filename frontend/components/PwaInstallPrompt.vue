@@ -77,11 +77,22 @@ function dismiss() {
   visible.value = false
 }
 
+function isStandalone(): boolean {
+  if (typeof window === 'undefined') return false
+  const nav = navigator as Navigator & { standalone?: boolean }
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    nav.standalone === true
+  )
+}
+
 onMounted(() => {
+  if (isStandalone()) return
   isIOS.value = detectIOS()
   if ('BeforeInstallPromptEvent' in window) {
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt)
-  } else if (isIOS.value && !window.matchMedia('(display-mode: standalone)').matches) {
+  } else if (isIOS.value) {
     visible.value = true
   }
 })
