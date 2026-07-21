@@ -1,10 +1,13 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('playground page', () => {
-  test.beforeEach(async ({ context }) => {
+  test.beforeEach(async ({ context, page }) => {
     await context.addCookies([
       { name: 'navi-token', value: 'test-token', domain: 'localhost', path: '/' },
     ])
+    await page.addInitScript(() => {
+      localStorage.setItem('navi-token', 'test-token')
+    })
   })
 
   test('renders NaviFace and state buttons', async ({ page }) => {
