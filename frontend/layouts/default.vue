@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-dvh bg-background text-foreground max-w-full overflow-x-hidden">
+  <div class="h-dvh overflow-hidden bg-background text-foreground max-w-full">
     <slot />
   </div>
 </template>

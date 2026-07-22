@@ -86,7 +86,7 @@ watch(sessionId, () => {
     <!-- Right: chat -->
     <div
       data-testid="chat-content-column"
-      class="flex flex-col flex-1 min-w-0 md:h-full"
+      class="flex flex-col flex-1 min-w-0 h-full"
     >
       <!-- Navbar -->
       <div class="shrink-0 h-14 border-b border-border flex items-center px-4 md:px-6 gap-3 bg-card min-w-0 pt-safe">
@@ -109,7 +109,7 @@ watch(sessionId, () => {
       </div>
 
       <!-- Messages -->
-      <div class="flex-1 min-h-0 overflow-hidden min-w-0">
+      <div class="flex-1 min-h-0 min-w-0">
         <MessageList
           :messages="messages"
           :is-streaming="isStreaming"
