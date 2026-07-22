@@ -25,7 +25,7 @@ function triggerWave() {
 </script>
 
 <template>
-  <div class="flex flex-col items-center gap-8 p-8 min-h-dvh bg-background text-foreground">
+  <div class="flex flex-col items-center gap-8 p-8 pt-safe pb-safe min-h-dvh bg-background text-foreground">
     <h1 class="text-xl font-semibold tracking-tight">NaviFace Playground</h1>
 
     <div class="w-80">

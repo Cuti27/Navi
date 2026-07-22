@@ -23,7 +23,7 @@ describe('MessageList', () => {
     expect(wrapper.find('.flex-col').exists()).toBe(true)
   })
 
-  it('has scroll container with iOS-friendly touch classes', async () => {
+  it('has scroll container with iOS-friendly touch settings', async () => {
     const wrapper = await mountSuspended(MessageList, {
       props: {
         messages: [
@@ -31,8 +31,9 @@ describe('MessageList', () => {
         ],
       },
     })
-    const scrollEl = wrapper.find('.overscroll-y-contain')
+    const scrollEl = wrapper.find('.overflow-y-auto')
     expect(scrollEl.exists()).toBe(true)
     expect(scrollEl.classes()).toContain('touch-pan-y')
+    expect(scrollEl.attributes('style')).toContain('overscroll-behavior-y')
   })
 })

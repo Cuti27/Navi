@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="visible"
-    class="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-80"
+    class="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-80 pb-safe"
   >
     <Card class="border border-border shadow-lg">
       <CardContent class="space-y-3 p-4">
@@ -12,7 +12,7 @@
               {{ message }}
             </p>
           </div>
-          <Button variant="ghost" size="icon" class="h-6 w-6 shrink-0" @click="dismiss">
+          <Button variant="ghost" size="icon" class="h-9 w-9 shrink-0 -mr-2" @click="dismiss">
             <X class="h-4 w-4" />
           </Button>
         </div>

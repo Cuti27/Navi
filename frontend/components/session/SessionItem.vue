@@ -31,9 +31,13 @@ const formattedDate = computed(() =>
       <p class="font-medium text-sm truncate">{{ session.title }}</p>
       <p class="text-xs text-muted-foreground font-mono mt-1">{{ formattedDate }}</p>
     </div>
-    <Trash2
-      class="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-3"
+    <button
+      type="button"
+      aria-label="Eliminar conversación"
+      class="ml-2 -mr-2 p-2.5 rounded-md hover:bg-accent active:bg-accent/80 transition-colors touch-manipulation shrink-0"
       @click.stop="emit('delete', session.id)"
-    />
+    >
+      <Trash2 class="h-4 w-4 text-muted-foreground" />
+    </button>
   </button>
 </template>

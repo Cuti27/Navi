@@ -50,7 +50,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div ref="listEl" class="h-full overflow-y-auto touch-pan-y" style="-webkit-overflow-scrolling: touch" @scroll.passive="onScroll">
+  <div ref="listEl" class="h-full overflow-y-auto touch-pan-y" style="-webkit-overflow-scrolling: touch; overscroll-behavior-y: contain" @scroll.passive="onScroll">
     <div class="flex flex-col gap-4 p-4">
       <MessageBubble
         v-for="(msg, idx) in messages"
