@@ -20,7 +20,7 @@ services:
       - COMPACTION_THRESHOLD=${COMPACTION_THRESHOLD:-30}
       - CORS_ORIGINS=${CORS_ORIGINS}
       - EXA_API_KEY=${EXA_API_KEY:-}
-      - PORTAINER_MCP_URL=http://portainer-mcp:3000
+      - PORTAINER_MCP_URL=http://portainer-mcp:3000/mcp
       - PORTAINER_MCP_TOKEN=${PORTAINER_MCP_TOKEN}
 
   frontend:

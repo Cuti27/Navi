@@ -41,8 +41,8 @@
     {
       "name": "portainer",
       "enabled": true,
-      "transport": "sse",
-      "url": "${PORTAINER_MCP_URL:-http://portainer-mcp:3000}",
+      "transport": "http",
+      "url": "${PORTAINER_MCP_URL:-http://portainer-mcp:3000/mcp}",
       "headers": {
         "Authorization": "Bearer ${PORTAINER_MCP_TOKEN}"
       },
