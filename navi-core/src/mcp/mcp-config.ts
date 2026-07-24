@@ -53,12 +53,17 @@ export interface McpConfig {
 }
 
 /**
- * Expand `${VAR}` placeholders inside string values using `process.env`.
- * Missing variables are left unchanged.
+ * Expand `${VAR}` and `${VAR:-default}` placeholders inside string values
+ * using `process.env`. Missing variables without a default are left unchanged.
  */
 export function expandEnvVars(value: unknown): unknown {
     if (typeof value === "string") {
-        return value.replace(/\$\{([^}]+)\}/g, (_, name) => process.env[name] ?? `\${${name}}`)
+        return value.replace(/\$\{([^}]+?)(?::-(.*?))?\}/g, (match, name, defaultValue) => {
+            const env = process.env[name]
+            if (env !== undefined) return env
+            if (defaultValue !== undefined) return defaultValue
+            return match
+        })
     }
 
     if (Array.isArray(value)) {
