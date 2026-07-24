@@ -20,6 +20,8 @@ services:
       - COMPACTION_THRESHOLD=${COMPACTION_THRESHOLD:-30}
       - CORS_ORIGINS=${CORS_ORIGINS}
       - EXA_API_KEY=${EXA_API_KEY:-}
+      - PORTAINER_MCP_URL=http://portainer-mcp:3000
+      - PORTAINER_MCP_TOKEN=${PORTAINER_MCP_TOKEN}
 
   frontend:
     image: ghcr.io/${GITHUB_USER:-cuti27}/navi/navi-frontend:latest
@@ -31,6 +33,18 @@ services:
       - "3001:3000"
     environment:
       - NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE:-http://navi-core:3000/api/v1}
+
+  portainer-mcp:
+    image: ghcr.io/cuti27/mcp-portainer-lite:latest
+    restart: unless-stopped
+    environment:
+      - PORTAINER_URL=${PORTAINER_URL}
+      - PORTAINER_API_KEY=${PORTAINER_API_KEY}
+      - PORTAINER_ENDPOINT_ID=${PORTAINER_ENDPOINT_ID:-1}
+      - PORTAINER_ALLOW_HTTP=${PORTAINER_ALLOW_HTTP:-false}
+      - ALLOW_MUTATIONS=${ALLOW_MUTATIONS:-false}
+      - MCP_AUTH_TOKEN=${PORTAINER_MCP_TOKEN}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
 
 volumes:
   navi-data:

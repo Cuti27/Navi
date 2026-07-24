@@ -37,6 +37,24 @@
         "fetch_markdown",
         "fetch_txt"
       ]
+    },
+    {
+      "name": "portainer",
+      "enabled": true,
+      "transport": "http",
+      "url": "${PORTAINER_MCP_URL:-http://portainer-mcp:3000}",
+      "headers": {
+        "Authorization": "Bearer ${PORTAINER_MCP_TOKEN}"
+      },
+      "autoApproveTools": [
+        "list_endpoints",
+        "list_stacks",
+        "get_stack",
+        "list_services",
+        "get_service",
+        "get_service_logs",
+        "get_endpoint_summary"
+      ]
     }
   ]
 }
