@@ -49,29 +49,35 @@ export class DrizzleApprovalRepository implements ApprovalRepository {
         status: "approved" | "denied",
         reason?: string
     ): Promise<ToolApproval> {
-        const existing = await this.getById(id)
-        if (!existing) {
-            throw new Error(`Tool approval not found: ${id}`)
-        }
-        if (existing.status !== "pending") {
-            throw new Error(
-                `Tool approval ${id} is already ${existing.status}`
-            )
-        }
-
-        await this.db
+        // Actualización atómica y condicional: solo afecta a filas aún en
+        // estado "pending". Evita la doble ejecución de la tool cuando dos
+        // requests concurrentes intentan aprobar el mismo approval.
+        const updated = await this.db
             .update(toolApprovals)
             .set({
                 status,
                 reason,
                 decidedAt: new Date(),
             })
-            .where(eq(toolApprovals.id, id))
+            .where(
+                and(
+                    eq(toolApprovals.id, id),
+                    eq(toolApprovals.status, "pending")
+                )
+            )
+            .returning()
+            .get()
 
-        const updated = await this.getById(id)
         if (!updated) {
-            throw new Error("Failed to update tool approval")
+            const existing = await this.getById(id)
+            if (!existing) {
+                throw new Error(`Tool approval not found: ${id}`)
+            }
+            throw new Error(
+                `Tool approval ${id} is already ${existing.status}`
+            )
         }
+
         return updated
     }
 }

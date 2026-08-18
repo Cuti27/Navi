@@ -39,6 +39,14 @@ export interface ApprovalResponseInput {
     reason?: string
 }
 
+/**
+ * Minimal shape of an executable AI SDK Tool used to run an approved tool call
+ * on stream resume. Only the execute method is needed.
+ */
+interface ExecutableTool {
+    execute?: (input: unknown, options?: unknown) => PromiseLike<unknown>
+}
+
 const log = getLogger("chat")
 
 const MCP_AUTO_APPROVED_TOOLS = new Set(
@@ -198,6 +206,29 @@ export class ChatService {
     }
 
     /**
+     * Executes a named tool (MCP or memory) with the given input and returns
+     * its output. Used to produce a real tool-result when resuming a stream
+     * after a user approves a tool call.
+     */
+    private async executeToolByName(
+        name: string,
+        input: unknown,
+        toolCallId: string
+    ): Promise<unknown> {
+        const { toolExecutor, memoryTools } = this.options
+        const enabledTools = (await toolExecutor?.getEnabledTools()) ?? {}
+        const tool = enabledTools[name] ?? memoryTools?.[name]
+        if (!tool) {
+            throw new Error(`Tool "${name}" not found`)
+        }
+        const executable = tool as unknown as ExecutableTool
+        if (typeof executable.execute !== "function") {
+            throw new Error(`Tool "${name}" is not executable`)
+        }
+        return await executable.execute(input, { toolCallId, toolName: name })
+    }
+
+    /**
      * Lists pending tool approvals for a session. Useful for the frontend
      * to recover its state after a reconnection or server restart.
      */
@@ -231,13 +262,6 @@ export class ChatService {
             })
         }
 
-        const approvalResponseParts: Array<{
-            type: "tool-approval-response"
-            approvalId: string
-            approved: boolean
-            reason?: string
-        }> = []
-
         const pendingBefore = await approvalRepository.listPendingBySession(sessionId)
         const providedIds = new Set(responses.map((r) => r.approvalId))
         const missingPending = pendingBefore.filter((a) => !providedIds.has(a.id))
@@ -250,6 +274,13 @@ export class ChatService {
                 { status: 400, headers: { "Content-Type": "application/json" } }
             )
         }
+
+        const toolResultParts: Array<{
+            type: "tool-result"
+            toolCallId: string
+            toolName: string
+            output: unknown
+        }> = []
 
         for (const response of responses) {
             const approval = await approvalRepository.getById(response.approvalId)
@@ -274,20 +305,53 @@ export class ChatService {
                 response.reason
             )
 
-            approvalResponseParts.push({
-                type: "tool-approval-response",
-                approvalId: response.approvalId,
-                approved: response.approved,
-                reason: response.reason,
-            })
+            // Build a real tool-result for the pending tool call so the SDK can
+            // correlate it with the assistant tool-call on resume. Persisting a
+            // bare tool-approval-response leaves the tool-call unresolved and
+            // the SDK throws MissingToolResultsError on the next streamText.
+            if (response.approved) {
+                let output: unknown
+                try {
+                    output = await this.executeToolByName(
+                        approval.toolName,
+                        approval.input,
+                        approval.toolCallId
+                    )
+                } catch (err) {
+                    const message = err instanceof Error ? err.message : String(err)
+                    log.error(
+                        { tool: approval.toolName, approvalId: response.approvalId, err: message },
+                        "tool execution failed after approval"
+                    )
+                    output = { error: "La herramienta falló al ejecutarse tras la aprobación" }
+                }
+                toolResultParts.push({
+                    type: "tool-result",
+                    toolCallId: approval.toolCallId,
+                    toolName: approval.toolName,
+                    // The SDK requires tool-result output to be a typed part
+                    // ({ type: "json", value }) rather than a bare value.
+                    output: { type: "json", value: output },
+                })
+            } else {
+                toolResultParts.push({
+                    type: "tool-result",
+                    toolCallId: approval.toolCallId,
+                    toolName: approval.toolName,
+                    output: {
+                        type: "json",
+                        value: { error: response.reason ?? "Usuario denegó la acción" },
+                    },
+                })
+            }
         }
 
         await messageRepository.create({
             id: randomUUID(),
             sessionId,
             role: "tool",
-            content: JSON.stringify(approvalResponseParts),
-            parts: approvalResponseParts as unknown as NewMessage["parts"],
+            content: JSON.stringify(toolResultParts),
+            parts: toolResultParts as unknown as NewMessage["parts"],
         })
 
         log.info(
