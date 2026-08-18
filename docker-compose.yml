@@ -22,6 +22,8 @@ services:
       - EXA_API_KEY=${EXA_API_KEY:-}
       - PORTAINER_MCP_URL=http://portainer-mcp:3000/mcp
       - PORTAINER_MCP_TOKEN=${PORTAINER_MCP_TOKEN}
+      - ARR_MCP_URL=http://arr-mcp:3000/mcp
+      - ARR_MCP_TOKEN=${ARR_MCP_TOKEN}
 
   frontend:
     image: ghcr.io/${GITHUB_USER:-cuti27}/navi/navi-frontend:latest
@@ -44,6 +46,20 @@ services:
       - PORTAINER_ALLOW_HTTP=${PORTAINER_ALLOW_HTTP:-false}
       - ALLOW_MUTATIONS=${ALLOW_MUTATIONS:-false}
       - MCP_AUTH_TOKEN=${PORTAINER_MCP_TOKEN}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+
+  arr-mcp:
+    image: ghcr.io/cuti27/mcp-arr-lite:latest
+    restart: unless-stopped
+    environment:
+      - RADARR_URL=${RADARR_URL:-http://radarr:7878}
+      - RADARR_API_KEY=${RADARR_API_KEY:?Required}
+      - SONARR_URL=${SONARR_URL:-http://sonarr:8989}
+      - SONARR_API_KEY=${SONARR_API_KEY:?Required}
+      - MCP_TRANSPORT=http
+      - MCP_AUTH_TOKEN=${ARR_MCP_TOKEN:?Required when MCP_TRANSPORT=http}
+      - PORT=3000
+      - HOST=0.0.0.0
       - LOG_LEVEL=${LOG_LEVEL:-info}
 
 volumes:

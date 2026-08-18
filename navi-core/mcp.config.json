@@ -55,6 +55,20 @@
         "get_service_logs",
         "get_endpoint_summary"
       ]
+    },
+    {
+      "name": "arr",
+      "enabled": true,
+      "transport": "http",
+      "url": "${ARR_MCP_URL:-http://arr-mcp:3000/mcp}",
+      "headers": {
+        "Authorization": "Bearer ${ARR_MCP_TOKEN}"
+      },
+      "autoApproveTools": [
+        "radarr_lookup",
+        "sonarr_lookup",
+        "list_indexers"
+      ]
     }
   ]
 }

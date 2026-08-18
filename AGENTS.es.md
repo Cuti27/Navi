@@ -132,7 +132,8 @@ Objetivo de cobertura en core: **≥ 70 %** líneas en `src/` (excl. `index.ts
 ### MCP + HITL
 
 - Servidores MCP declarados en `navi-core/mcp.config.json`; `mcp-config.ts` → `mcp-tool-service.ts`. Soporta transportes **HTTP**, **SSE** y **stdio**. Los valores de config pueden incluir variables de entorno con sintaxis `${VAR}`.
-- Servidores por defecto: `deepwiki` (docs HTTP), `exa` (búsqueda web HTTP, requiere `EXA_API_KEY`). El servidor stdio `fetch` está deshabilitado actualmente por la vulnerabilidad SSRF `private-ip` en `mcp-fetch-server`.
+- Servidores por defecto: `deepwiki` (docs HTTP), `exa` (búsqueda web HTTP, requiere `EXA_API_KEY`), `portainer`, y `arr` (HTTP, `mcp-arr-lite` para Radarr/Sonarr — requiere `ARR_MCP_TOKEN`, además de `RADARR_URL`/`RADARR_API_KEY` y `SONARR_URL`/`SONARR_API_KEY`). El servidor stdio `fetch` está deshabilitado actualmente por la vulnerabilidad SSRF `private-ip` en `mcp-fetch-server`.
+- Las herramientas listadas en `autoApproveTools` se ejecutan sin confirmación; **todas las demás requieren aprobación Human-in-the-Loop** (flujo de aprobación en `routes/v1/approval.route.ts`, repos en `src/db/repositories/`). Para `arr`, los lookups y `list_indexers` están auto-aprobados; add/search/grab requieren aprobación.
 - Las herramientas listadas bajo `autoApproveTools` se ejecutan sin confirmación; **todas las demás herramientas requieren aprobación Human-in-the-Loop** (flujo de aprobación en `routes/v1/approval.route.ts`, repos en `src/db/repositories/`).
 - `src/memory/` implementa memoria interna del repo (store + repositorio + herramientas + constructor de contexto) y se reindexa al arrancar (`memoryRepository.reindexAll()`). Los nombres de herramientas de memoria de solo lectura están exentos de HITL.
 

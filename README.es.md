@@ -129,6 +129,10 @@ pnpm --filter frontend test:e2e
 
 `navi-core` incluye por defecto el MCP server de **Exa** para búsqueda web (requiere `EXA_API_KEY` en `navi-core/.env`). Consulta [`navi-core/README.es.md`](./navi-core/README.es.md#mcp-y-human-in-the-loop-hitl) para más detalles.
 
+## Media (Radarr / Sonarr)
+
+Navi puede buscar y descargar películas y series mediante el MCP server **`arr`** (`mcp-arr-lite`). El servicio `arr` está definido en `docker-compose.yml`; necesita `ARR_MCP_TOKEN`, además de `RADARR_URL`/`RADARR_API_KEY` y `SONARR_URL`/`SONARR_API_KEY` en el `.env` del compose. Consulta [`navi-core/README.es.md`](./navi-core/README.es.md#servidores-mcp-por-defecto) para más detalles.
+
 ## Seguridad
 
 - Todas las rutas de la API (`/api/v1/*`) están protegidas por un **Token Maestro** (`MASTER_TOKEN`).

@@ -77,6 +77,8 @@ cp .env.example .env
 | `AI_SYSTEM_PROMPT` | No | Additional system prompt fragment. | `""` |
 | `CORS_ORIGINS` | Yes | Allowed origins (comma-separated list). | — |
 | `EXA_API_KEY` | No | [Exa](https://exa.ai/) API key for web search via MCP. | — |
+| `PORTAINER_MCP_URL` / `PORTAINER_MCP_TOKEN` | No | Portainer MCP server URL and bearer token (used by the `portainer` MCP server). | — |
+| `ARR_MCP_URL` / `ARR_MCP_TOKEN` | No | Arr MCP server URL and bearer token (used by the `arr` MCP server). | `http://arr-mcp:3000/mcp` / — |
 | `GITHUB_USER` | No | GitHub username for Docker image namespace when using docker-compose. | `cuti27` |
 
 > `AI_MODEL` is required: the server will fail to start if missing.
@@ -155,6 +157,8 @@ The `mcp.config.json` file includes by default:
 
 - **`deepwiki`** (HTTP): repository documentation.
 - **`exa`** (HTTP): web search and page fetching. Requires `EXA_API_KEY`. The `web_search_exa` and `web_fetch_exa` tools are auto-approved.
+- **`portainer`** (HTTP): Portainer management via `mcp-portainer-lite`. Requires `PORTAINER_MCP_URL` and `PORTAINER_MCP_TOKEN`. Read-only tools are auto-approved; mutations require HITL.
+- **`arr`** (HTTP): Radarr/Sonarr via `mcp-arr-lite`. Requires `ARR_MCP_TOKEN` (and `ARR_MCP_URL`), plus `RADARR_URL`/`RADARR_API_KEY` and `SONARR_URL`/`SONARR_API_KEY` (see the [arr-mcp repo](https://github.com/cuti27/mcp-arr-lite)). `radarr_lookup`, `sonarr_lookup`, and `list_indexers` are auto-approved; add/search/grab require HITL.
 - **`fetch`** (stdio): **temporarily disabled** due to the `private-ip` SSRF vulnerability in `mcp-fetch-server`. It can be re-enabled in `mcp.config.json` once patched.
 
 To enable Exa, add your API key to `navi-core/.env`:
