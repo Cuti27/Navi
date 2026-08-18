@@ -159,6 +159,7 @@ El archivo `mcp.config.json` incluye de serie:
 - **`exa`** (HTTP): búsqueda web y fetch de páginas. Requiere `EXA_API_KEY`. Las herramientas `web_search_exa` y `web_fetch_exa` están auto-aprobadas.
 - **`portainer`** (HTTP): gestión de Portainer vía `mcp-portainer-lite`. Requiere `PORTAINER_MCP_URL` y `PORTAINER_MCP_TOKEN`. Las herramientas de solo lectura están auto-aprobadas; las mutaciones requieren HITL.
 - **`arr`** (HTTP): Radarr/Sonarr vía `mcp-arr-lite`. Requiere `ARR_MCP_TOKEN` (y `ARR_MCP_URL`), además de `RADARR_URL`/`RADARR_API_KEY` y `SONARR_URL`/`SONARR_API_KEY` (ver el [repo arr-mcp](https://github.com/cuti27/mcp-arr-lite)). `radarr_lookup`, `sonarr_lookup` y `list_indexers` están auto-aprobadas; add/search/grab requieren HITL.
+  - **Alcanzar Radarr/Sonarr**: el contenedor `arr-mcp` se une a la red externa `jellyfin_default` en `docker-compose.yml` para poder llegar a Radarr/Sonarr cuando corren en una red aparte o detrás de dominios personalizados. Si `RADARR_URL`/`SONARR_URL` usan un hostname público y el contenedor no puede alcanzarlo (NAT hairpin / firewall), usa el nombre interno del contenedor (p. ej. `http://sonarr:8989`) o una entrada `hosts` — ver el [`README.md`](../README.es.md#red-y-dominios-personalizados) raíz.
 - **`fetch`** (stdio): **deshabilitado temporalmente** por la vulnerabilidad SSRF en la dependencia `private-ip` de `mcp-fetch-server`. Cuando haya parche, se puede volver a activar en `mcp.config.json`.
 
 Para activar Exa, añade tu API key a `navi-core/.env`:

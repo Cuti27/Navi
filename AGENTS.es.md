@@ -49,6 +49,7 @@ docker compose down               # detener servicios
 - **Vitest `globals: false`** en ambas configs — importa `describe`/`it`/`expect` explícitamente de `vitest`.
 - **Pipeline CI** — `.github/workflows/docker-publish.yml` construye y publica imágenes Docker en GHCR al hacer push a `main`.
 - **Dockerfiles** — `navi-core/Dockerfile` (multi-stage, Node 24 Alpine), `frontend/Dockerfile` (multi-stage, Node 24 Alpine). `docker-compose.yml` en raíz para Portainer GitOps.
+- **Redes Docker** — `docker-compose.yml` define una red externa `jellyfin_default` (configurable mediante `JELLYFIN_NETWORK`) a la que se une `arr-mcp` para poder alcanzar Radarr/Sonarr cuando corren en una red aparte del stack de media o detrás de dominios personalizados. La red externa debe existir ya en el host (`docker network create jellyfin_default`) antes de desplegar.
 - `pnpm-workspace.yaml` `onlyBuiltDependencies` permite `better-sqlite3`, `esbuild`, `@parcel/watcher`, `vue-demi`. `allowBuilds` también incluye `msw: true`.
 
 ## Especificidades de navi-core

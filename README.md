@@ -133,6 +133,22 @@ pnpm --filter frontend test:e2e
 
 Navi can fetch and download movies and series via the **`arr`** MCP server (`mcp-arr-lite`). The `arr` service is defined in `docker-compose.yml`; it needs `ARR_MCP_TOKEN`, plus `RADARR_URL`/`RADARR_API_KEY` and `SONARR_URL`/`SONARR_API_KEY` in the compose `.env`. See [`navi-core/README.md`](./navi-core/README.md#default-mcp-servers) for details.
 
+### Network and custom domains
+
+`arr-mcp` must be able to reach Radarr and Sonarr. The compose connects `arr-mcp` to **two networks**:
+
+- `default` — the stack's own network, so `navi-core` can reach `arr-mcp` at `http://arr-mcp:3000/mcp`.
+- `jellyfin_default` (external) — a **shared network with your media stack** (Jellyfin + Radarr + Sonarr). The `arr` service joins it so it can reach Radarr/Sonarr when they run on a separate network or behind custom domains.
+
+The external network must already exist on the Docker host before deploying (`docker network create jellyfin_default` if it doesn't). It is configurable via `JELLYFIN_NETWORK` (default `jellyfin_default`).
+
+**Custom-domain workarounds.** If `RADARR_URL`/`SONARR_URL` point to a public hostname (e.g. `https://sonarr.example.com`) instead of a container name:
+
+- **DNS split-horizon**: ensure the hostname resolves inside Docker. If it points to your public IP, the container may not be able to reach it (hairpin NAT / firewall). A common fix is adding a `hosts` entry mapping the hostname to the container's IP, or using the internal container name (`http://sonarr:8989`) when both are on `jellyfin_default`.
+- **Reverse proxy path**: if Sonarr/Radarr are behind a reverse proxy that requires a `Host` header, configure the proxy accordingly; `arr-mcp` does not add custom headers per tool.
+- **TLS**: the Arr apps and `arr-mcp` use their own API keys; `arr-mcp` does not terminate TLS. Terminate TLS at the reverse proxy and use `http://` between containers when possible.
+- **Debugging**: from inside the container, run `docker exec navi_arr-mcp sh -c 'wget -qO- --header="X-Api-Key: $SONARR_API_KEY" "https://sonarr.example.com/api/v3/series/lookup?term=test"'` and check the HTTP code. A `401`/`403` is an API-key/URL issue; a hang or timeout means a connectivity/routing problem (not a code bug in `arr-mcp`).
+
 ## Security
 
 - All API routes (`/api/v1/*`) are protected by a **Master Token** (`MASTER_TOKEN`).

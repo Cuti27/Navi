@@ -61,6 +61,16 @@ services:
       - PORT=3000
       - HOST=0.0.0.0
       - LOG_LEVEL=${LOG_LEVEL:-info}
+    networks:
+      - default
+      - jellyfin_default
+
+networks:
+  default:
+    name: ${NAVI_NETWORK:-navi_default}
+  jellyfin_default:
+    name: ${JELLYFIN_NETWORK:-jellyfin_default}
+    external: true
 
 volumes:
   navi-data:
