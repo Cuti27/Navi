@@ -8,6 +8,7 @@ import type { SessionRepository } from "../../db/repositories/session.repository
 import type { MessageRepository } from "../../db/repositories/message.repository.js"
 import type { ApprovalRepository } from "../../db/repositories/approval.repository.js"
 import type { AIProvider } from "../../providers/ai-provider.js"
+import type { TranscriptionService } from "../../chat/transcription-service.js"
 import type { MemoryRepository } from "../../memory/memory-repository.js"
 
 function createAsyncIterable<T>(chunks: T[]): AsyncIterable<T> {
@@ -125,6 +126,7 @@ describe("e2e orchestration", () => {
 
     app = createV1Routes({
       chatService,
+      transcriptionService: { transcribe: vi.fn() } as unknown as TranscriptionService,
       toolExecutor,
       sessionRepository: sessionRepo,
       messageRepository: messageRepo,

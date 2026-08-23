@@ -80,6 +80,17 @@ export function useNaviApi() {
     return response
   }
 
+  async function transcribeAudio(blob: Blob): Promise<{ text: string }> {
+    const fd = new FormData()
+    fd.append('audio', blob, 'voice.wav')
+    return $fetch<{ text: string }>('/chat/transcribe', {
+      baseURL,
+      method: 'POST',
+      body: fd,
+      headers: { Authorization: `Bearer ${auth.token}` },
+    })
+  }
+
   async function submitApprovals(
     body: ApprovalSubmission,
     signal?: AbortSignal
@@ -106,6 +117,7 @@ export function useNaviApi() {
     deleteSession,
     getPendingApprovals,
     sendMessage,
+    transcribeAudio,
     submitApprovals,
   }
 }

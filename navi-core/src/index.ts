@@ -11,6 +11,7 @@ import { mcpConfig } from "./mcp/mcp-config.js"
 import { McpToolService } from "./mcp/mcp-tool-service.js"
 import { ChatService } from "./chat/chat-service.js"
 import { CompactionService } from "./chat/compaction-service.js"
+import { WhisperTranscriptionService } from "./chat/transcription-service.js"
 import { createV1Routes } from "./routes/v1/index.js"
 import { requestLogger } from "./middleware/request-logger.js"
 import { getLogger } from "./logger/logger.js"
@@ -82,6 +83,11 @@ const compactionService = new CompactionService({
 
 const memoryContextBuilder = new MemoryContextBuilder({ repository: memoryRepository })
 
+const transcriptionService = new WhisperTranscriptionService({
+    model: process.env.STT_MODEL ?? "Xenova/whisper-base",
+    language: process.env.STT_LANGUAGE ?? "es",
+})
+
 const chatService = new ChatService({
     provider,
     modelId,
@@ -122,7 +128,7 @@ app.use("/api/v1/*", masterAuth)
 
 app.route(
     "/api/v1",
-    createV1Routes({ chatService, toolExecutor, sessionRepository, messageRepository, memoryRepository })
+    createV1Routes({ chatService, transcriptionService, toolExecutor, sessionRepository, messageRepository, memoryRepository })
 )
 
 serve({

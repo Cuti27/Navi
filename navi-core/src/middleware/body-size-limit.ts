@@ -1,7 +1,7 @@
 import type { MiddlewareHandler } from "hono"
 
 export function createBodySizeLimit(): MiddlewareHandler {
-    const maxSize = Number(process.env.MAX_BODY_SIZE) || 1_048_576
+    const maxSize = Number(process.env.MAX_BODY_SIZE) || 10 * 1024 * 1024
 
     return async (c, next) => {
         const contentLength = c.req.header("content-length")
