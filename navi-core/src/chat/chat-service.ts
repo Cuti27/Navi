@@ -15,6 +15,7 @@ import type { ApprovalRepository } from "../db/repositories/approval.repository.
 import type { Message, NewMessage } from "../db/schema.js"
 import { getLogger } from "../logger/logger.js"
 import type { CompactionService } from "./compaction-service.js"
+import type { TitleGenerator } from "./title-generator.js"
 import type { MemoryContextBuilder } from "../memory/memory-context.js"
 import { mcpConfig } from "../mcp/mcp-config.js"
 
@@ -27,6 +28,7 @@ export interface ChatServiceOptions {
     messageRepository: MessageRepository
     approvalRepository: ApprovalRepository
     compactionService?: CompactionService
+    titleGenerator?: TitleGenerator
     memoryTools?: Record<string, Tool>
     readOnlyToolNames?: Set<string>
     memoryContextBuilder?: MemoryContextBuilder
@@ -106,6 +108,10 @@ export class ChatService {
             role: "user",
             content: userMessage,
         })
+
+        void this.options.titleGenerator
+            ?.generateAndUpdate(sessionId, userMessage)
+            .catch((err) => log.error({ err, sessionId }, "title generation failed"))
 
         await compactionService?.checkAndCompact(sessionId)
 

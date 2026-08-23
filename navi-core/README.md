@@ -74,6 +74,8 @@ cp .env.example .env
 | `DATABASE_URL` | No | SQLite file path. | `./data/navi.db` |
 | `MEMORY_DIR` | No | Persistent memory directory. | `./data/memory` |
 | `COMPACTION_THRESHOLD` | No | Message compaction threshold. | `30` |
+| `TITLE_MODEL` | No | Model used to auto-generate session titles after the first message. | `AI_MODEL` |
+| `TITLE_MAX_WORDS` | No | Max words for auto-generated session titles. | `6` |
 | `AI_SYSTEM_PROMPT` | No | Additional system prompt fragment. | `""` |
 | `CORS_ORIGINS` | Yes | Allowed origins (comma-separated list). | — |
 | `EXA_API_KEY` | No | [Exa](https://exa.ai/) API key for web search via MCP. | — |

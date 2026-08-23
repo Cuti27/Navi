@@ -11,6 +11,7 @@ import { mcpConfig } from "./mcp/mcp-config.js"
 import { McpToolService } from "./mcp/mcp-tool-service.js"
 import { ChatService } from "./chat/chat-service.js"
 import { CompactionService } from "./chat/compaction-service.js"
+import { LlmTitleGenerator } from "./chat/title-generator.js"
 import { createV1Routes } from "./routes/v1/index.js"
 import { requestLogger } from "./middleware/request-logger.js"
 import { getLogger } from "./logger/logger.js"
@@ -82,6 +83,14 @@ const compactionService = new CompactionService({
 
 const memoryContextBuilder = new MemoryContextBuilder({ repository: memoryRepository })
 
+const titleGenerator = new LlmTitleGenerator({
+    provider,
+    modelId: process.env.TITLE_MODEL || modelId,
+    sessionRepository,
+    messageRepository,
+    maxWords: Number(process.env.TITLE_MAX_WORDS || "6"),
+})
+
 const chatService = new ChatService({
     provider,
     modelId,
@@ -91,6 +100,7 @@ const chatService = new ChatService({
     messageRepository,
     approvalRepository,
     compactionService,
+    titleGenerator,
     memoryTools,
     readOnlyToolNames: MEMORY_READ_ONLY_TOOLS,
     memoryContextBuilder,
