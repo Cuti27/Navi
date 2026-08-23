@@ -25,13 +25,15 @@ COPY --from=build /app/navi-core/mcp.config.json ./
 COPY --from=deps /app/navi-core/node_modules ./node_modules
 COPY --from=deps /app/node_modules/.pnpm /app/node_modules/.pnpm
 
-RUN mkdir -p /app/data && chown -R navi:nodejs /app/data
+RUN mkdir -p /app/data /app/data/memory /app/data/transformers && chown -R navi:nodejs /app/data
 
 RUN rm -rf /root/.cache /opt/yarn* /usr/local/lib/node_modules/npm
 
 ENV NODE_ENV=production
 ENV DATABASE_URL=/app/data/navi.db
 ENV MEMORY_DIR=/app/data/memory
+ENV STT_CACHE_DIR=/app/data/transformers
+ENV FILES_DIR=/app/data/files
 
 EXPOSE 3000
 

@@ -36,4 +36,14 @@ describe("FileStore", () => {
   it("throws when reading a non-existent file", async () => {
     await expect(store.readFile("missing")).rejects.toThrow("File not found")
   })
+
+  it("rejects ids that could traverse out of the store directory", async () => {
+    await expect(store.writeFile("session-1", "../escape.txt", Buffer.from("x"))).rejects.toThrow(
+      "Invalid file id"
+    )
+    await expect(store.readFile("../escape.txt")).rejects.toThrow("Invalid file id")
+    await expect(store.readFile("a/b.txt")).rejects.toThrow("Invalid file id")
+    await expect(store.readFile("..")).rejects.toThrow("Invalid file id")
+    await expect(store.readFile("")).rejects.toThrow("Invalid file id")
+  })
 })

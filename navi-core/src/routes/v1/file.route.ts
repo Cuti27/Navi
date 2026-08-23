@@ -48,7 +48,9 @@ export function createFileRoute(
         return new Response(new Uint8Array(buffer), {
             headers: {
                 "Content-Type": file.mediaType,
-                "Cache-Control": "public, max-age=31536000, immutable",
+                // Private: content is output of the model and the endpoint is
+                // token-authenticated, so it must not be cached by shared caches.
+                "Cache-Control": "private, max-age=31536000, immutable",
             },
         })
     })

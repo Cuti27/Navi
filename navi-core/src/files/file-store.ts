@@ -13,11 +13,13 @@ export class FileStore {
     }
 
     async writeFile(sessionId: string, id: string, data: Buffer): Promise<void> {
+        this.assertSafeId(id)
         await mkdir(this.dir, { recursive: true })
         await writeFile(join(this.dir, id), data)
     }
 
     async readFile(id: string): Promise<Buffer> {
+        this.assertSafeId(id)
         try {
             return await readFile(join(this.dir, id))
         } catch (error) {
@@ -25,6 +27,19 @@ export class FileStore {
                 throw new Error(`File not found: ${id}`)
             }
             throw error
+        }
+    }
+
+    /**
+     * Defense in depth: ids reach disk paths, so reject anything that could
+     * escape `this.dir` (path separators, `..`, traversal via resolve).
+     */
+    private assertSafeId(id: string): void {
+        if (!id || id.includes("/") || id.includes("\\") || id === "." || id === ".." || id.includes("..")) {
+            throw new Error(`Invalid file id`)
+        }
+        if (!resolve(this.dir, id).startsWith(this.dir + "/")) {
+            throw new Error(`Invalid file id`)
         }
     }
 }

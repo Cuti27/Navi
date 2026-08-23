@@ -67,6 +67,8 @@ describe("createTranscribeRoute", () => {
     expect(res.status).toBe(500)
     const body = await res.json()
     expect(body.error).toBe("Transcription failed")
-    expect(body.message).toContain("La transcripción falló")
+    // Internal details are never leaked to the client.
+    expect(body.message).toBe("No se pudo transcribir el audio")
+    expect(body.message).not.toContain("modelo caído")
   })
 })

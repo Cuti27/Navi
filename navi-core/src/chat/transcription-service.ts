@@ -8,6 +8,7 @@ export interface TranscriptionService {
 export interface WhisperTranscriptionOptions {
     model?: string
     language?: string
+    maxAudioSeconds?: number
 }
 
 /**
@@ -42,6 +43,10 @@ export class WhisperTranscriptionService implements TranscriptionService {
         return this.options.language ?? "es"
     }
 
+    private get maxAudioSeconds(): number {
+        return this.options.maxAudioSeconds ?? (Number(process.env.MAX_AUDIO_SECONDS) || 120)
+    }
+
     private async getPipeline(): Promise<AutomaticSpeechRecognitionPipeline> {
         if (!this.pipelinePromise) {
             this.pipelinePromise = (async () => {
@@ -62,6 +67,14 @@ export class WhisperTranscriptionService implements TranscriptionService {
         try {
             const pipe = await this.getPipeline()
             const audioFloat32 = decodeWavToFloat32(audio)
+
+            const durationSeconds = audioFloat32.length / readSampleRate(audio)
+            if (durationSeconds > this.maxAudioSeconds) {
+                throw new Error(
+                    `Audio demasiado largo (${durationSeconds.toFixed(1)}s, máximo ${this.maxAudioSeconds}s)`
+                )
+            }
+
             const output = await pipe(audioFloat32, {
                 language: this.language,
                 task: "transcribe",
@@ -85,6 +98,20 @@ export class WhisperTranscriptionService implements TranscriptionService {
             throw new Error(`La transcripción falló: ${message}`)
         }
     }
+}
+
+/**
+ * Reads the sample rate from a RIFF/WAVE header (offset 24, uint32 LE).
+ * Throws if the buffer does not look like a WAV.
+ */
+export function readSampleRate(buffer: Buffer): number {
+    if (buffer.length < 28) {
+        throw new Error("Audio demasiado corto para ser un WAV")
+    }
+    if (buffer.toString("ascii", 0, 4) !== "RIFF" || buffer.toString("ascii", 8, 12) !== "WAVE") {
+        throw new Error("Formato WAVE no encontrado")
+    }
+    return buffer.readUInt32LE(24)
 }
 
 /**

@@ -67,6 +67,7 @@ Copy `navi-core/.env.example` to `navi-core/.env`. `src/index.ts` loads `dotenv/
 - `AI_PROVIDER`, `AI_PROVIDER_API_URL`, `AI_PROVIDER_API_KEY` — read by `factory-provider.ts` (supports `openai` and `opencode`).
 - Defaults: `DATABASE_URL`=`./data/navi.db`, `MEMORY_DIR`=`./data/memory`, `COMPACTION_THRESHOLD`=`30`, `AI_SYSTEM_PROMPT`=``.
 - `TITLE_MODEL`, `TITLE_MAX_WORDS` — optional: model for auto-generated session titles (falls back to `AI_MODEL`) and max words (default `6`).
+- `FILES_DIR` (default `./data/files`) — directory for generated image files; `STT_MODEL`/`STT_LANGUAGE`/`STT_CACHE_DIR`/`MAX_AUDIO_SECONDS` configure the local Whisper voice transcription (transformers.js).
 - `EXA_API_KEY` enables the default `exa` MCP server for web search.
 - `DATABASE_URL` is NOT in `.env.example` but used by `drizzle.config.ts` and `src/index.ts`.
 

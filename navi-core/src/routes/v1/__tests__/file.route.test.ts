@@ -44,7 +44,7 @@ describe("createFileRoute", () => {
     const res = await app.request(`/files/${id}`)
     expect(res.status).toBe(200)
     expect(res.headers.get("Content-Type")).toBe("image/png")
-    expect(res.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable")
+    expect(res.headers.get("Cache-Control")).toBe("private, max-age=31536000, immutable")
 
     const body = await res.arrayBuffer()
     expect(Buffer.from(body)).toEqual(bytes)

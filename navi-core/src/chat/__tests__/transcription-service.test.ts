@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { WhisperTranscriptionService, decodeWavToFloat32 } from "../transcription-service.js"
+import {
+    WhisperTranscriptionService,
+    decodeWavToFloat32,
+    readSampleRate,
+} from "../transcription-service.js"
 
 const { mockPipeline, mockEnv } = vi.hoisted(() => ({
   mockPipeline: vi.fn(),
@@ -120,6 +124,20 @@ describe("WhisperTranscriptionService", () => {
       "La transcripción no produjo texto"
     )
   })
+
+  it("rejects audio longer than maxAudioSeconds before running inference", async () => {
+    const pipe = vi.fn().mockResolvedValue({ text: "hola" })
+    mockPipeline.mockResolvedValue(pipe)
+
+    // 3 seconds of audio at 16000 Hz mono.
+    const service = new WhisperTranscriptionService({ maxAudioSeconds: 2 })
+    const wav = makeWavPcm16(new Int16Array(16000 * 3).fill(0), 1, 16000)
+
+    await expect(service.transcribe(wav, "audio/wav")).rejects.toThrow(
+      "Audio demasiado largo"
+    )
+    expect(pipe).not.toHaveBeenCalled()
+  })
 })
 
 describe("decodeWavToFloat32", () => {
@@ -181,5 +199,16 @@ describe("decodeWavToFloat32", () => {
     const wav = makeWavPcm16(new Int16Array([0, 0]), 1)
     wav.writeUInt16LE(6, 20) // A-law / unsupported
     expect(() => decodeWavToFloat32(wav)).toThrow("Formato de audio no soportado")
+  })
+})
+
+describe("readSampleRate", () => {
+  it("reads the sample rate from a WAV header", () => {
+    expect(readSampleRate(makeWavPcm16(new Int16Array([0]), 1, 44100))).toBe(44100)
+    expect(readSampleRate(makeWavPcm16(new Int16Array([0]), 1, 16000))).toBe(16000)
+  })
+
+  it("rejects a non-WAV buffer", () => {
+    expect(() => readSampleRate(Buffer.alloc(30).fill(0))).toThrow("Formato WAVE no encontrado")
   })
 })

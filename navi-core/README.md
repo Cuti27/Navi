@@ -76,6 +76,11 @@ cp .env.example .env
 | `COMPACTION_THRESHOLD` | No | Message compaction threshold. | `30` |
 | `TITLE_MODEL` | No | Model used to auto-generate session titles after the first message. | `AI_MODEL` |
 | `TITLE_MAX_WORDS` | No | Max words for auto-generated session titles. | `6` |
+| `FILES_DIR` | No | Directory where generated image files are stored. | `./data/files` |
+| `STT_MODEL` | No | Local Whisper model id for voice transcription (transformers.js). | `Xenova/whisper-base` |
+| `STT_LANGUAGE` | No | Language used by the local transcriber. | `es` |
+| `STT_CACHE_DIR` | No | Directory where the Whisper model is downloaded on first use. | `./data/transformers` |
+| `MAX_AUDIO_SECONDS` | No | Max audio duration (seconds) allowed per transcription. | `120` |
 | `AI_SYSTEM_PROMPT` | No | Additional system prompt fragment. | `""` |
 | `CORS_ORIGINS` | Yes | Allowed origins (comma-separated list). | — |
 | `EXA_API_KEY` | No | [Exa](https://exa.ai/) API key for web search via MCP. | — |
