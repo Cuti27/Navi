@@ -57,6 +57,24 @@ export const toolApprovals = sqliteTable("tool_approvals", {
 })
 
 /**
+ * Generated files produced by the model in chat responses. The binary content
+ * lives on disk (FILES_DIR) keyed by id; this table tracks metadata and links
+ * files to the session that produced them.
+ */
+export const files = sqliteTable("files", {
+    id: text("id").primaryKey(),
+    sessionId: text("session_id")
+        .notNull()
+        .references(() => sessions.id, { onDelete: "cascade" }),
+    mediaType: text("media_type").notNull(),
+    fileName: text("file_name"),
+    size: integer("size").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+        .notNull()
+        .default(sql`(strftime('%s', 'now'))`),
+})
+
+/**
  * Long-term memory index. Source of truth are markdown files under MEMORY_DIR.
  * This table keeps an indexed copy for fast retrieval and FTS5 search.
  */
@@ -84,6 +102,9 @@ export type NewMessage = typeof messages.$inferInsert
 
 export type ToolApproval = typeof toolApprovals.$inferSelect
 export type NewToolApproval = typeof toolApprovals.$inferInsert
+
+export type File = typeof files.$inferSelect
+export type NewFile = typeof files.$inferInsert
 
 export type Memory = typeof memories.$inferSelect
 export type NewMemory = typeof memories.$inferInsert

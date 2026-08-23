@@ -23,6 +23,8 @@ import { createDb } from "./db/client.js"
 import { DrizzleSessionRepository } from "./db/repositories/session.repository.js"
 import { DrizzleMessageRepository } from "./db/repositories/message.repository.js"
 import { DrizzleApprovalRepository } from "./db/repositories/approval.repository.js"
+import { DrizzleFileRepository } from "./db/repositories/file.repository.js"
+import { FileStore } from "./files/file-store.js"
 import { DynamicSystemPromptBuilder } from "./prompts/dynamic-system-prompt.js"
 import { MemoryStore } from "./memory/memory-store.js"
 import { MemoryRepository } from "./memory/memory-repository.js"
@@ -55,6 +57,8 @@ log.info({ databaseUrl }, "database migrated")
 const sessionRepository = new DrizzleSessionRepository(db)
 const messageRepository = new DrizzleMessageRepository(db)
 const approvalRepository = new DrizzleApprovalRepository(db)
+const fileStore = new FileStore()
+const fileRepository = new DrizzleFileRepository(db)
 
 const toolExecutor = new McpToolService(mcpConfig.servers)
 void toolExecutor.connect()
@@ -104,6 +108,8 @@ const chatService = new ChatService({
     memoryTools,
     readOnlyToolNames: MEMORY_READ_ONLY_TOOLS,
     memoryContextBuilder,
+    fileStore,
+    fileRepository,
 })
 
 const app = new Hono()
@@ -132,7 +138,7 @@ app.use("/api/v1/*", masterAuth)
 
 app.route(
     "/api/v1",
-    createV1Routes({ chatService, toolExecutor, sessionRepository, messageRepository, memoryRepository })
+    createV1Routes({ chatService, toolExecutor, sessionRepository, messageRepository, memoryRepository, fileStore, fileRepository })
 )
 
 serve({

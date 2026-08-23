@@ -254,4 +254,90 @@ describe('useSseChat', () => {
     // After cancel, isStreaming should be false
     expect(chat.isStreaming.value).toBe(false)
   })
+
+  it('loadHistory maps file parts to images', () => {
+    const chat = useSseChat()
+    chat.loadHistory([
+      {
+        id: 'msg-1',
+        role: 'assistant',
+        content: 'Aquí tienes la imagen',
+        createdAt: '',
+        parts: [
+          { type: 'text', text: 'Aquí tienes la imagen' },
+          { type: 'file', id: 'file-1', mediaType: 'image/png' },
+        ],
+      },
+    ])
+    const assistant = chat.messages.value[0]
+    expect(assistant.images).toHaveLength(1)
+    expect(assistant.images![0]).toEqual({
+      id: 'file-1',
+      mediaType: 'image/png',
+      url: `${apiBase}/files/file-1`,
+    })
+  })
+
+  it('loadHistory leaves images undefined when there are no file parts', () => {
+    const chat = useSseChat()
+    chat.loadHistory([
+      { id: 'msg-1', role: 'assistant', content: 'Hola', createdAt: '' },
+    ])
+    expect(chat.messages.value[0].images).toBeUndefined()
+  })
+
+  it('attaches a file event to the last assistant message', async () => {
+    stubFetch(() =>
+      makeSseResponse(
+        'data: "Aquí tienes la imagen"\n\n',
+        'event: file\ndata: {"id":"file-1","mediaType":"image/png","url":"/api/v1/files/file-1"}\n\n',
+        'event: done\ndata: {"reason":"complete"}\n\n',
+      ),
+    )
+
+    const chat = useSseChat()
+    await chat.sendMessage('session-6', 'Genera una imagen')
+    const assistant = chat.messages.value.find((m) => m.role === 'assistant')
+    expect(assistant).toBeDefined()
+    expect(assistant!.content).toBe('Aquí tienes la imagen')
+    expect(assistant!.images).toHaveLength(1)
+    expect(assistant!.images![0]).toEqual({
+      id: 'file-1',
+      mediaType: 'image/png',
+      url: '/api/v1/files/file-1',
+    })
+  })
+
+  it('accumulates multiple file events on the same assistant message', async () => {
+    stubFetch(() =>
+      makeSseResponse(
+        'event: file\ndata: {"id":"file-1","mediaType":"image/png","url":"/api/v1/files/file-1"}\n\n',
+        'event: file\ndata: {"id":"file-2","mediaType":"image/jpeg","url":"/api/v1/files/file-2"}\n\n',
+        'event: done\ndata: {"reason":"complete"}\n\n',
+      ),
+    )
+
+    const chat = useSseChat()
+    await chat.sendMessage('session-7', 'Genera dos imágenes')
+    const assistant = chat.messages.value.find((m) => m.role === 'assistant')
+    expect(assistant).toBeDefined()
+    expect(assistant!.images).toHaveLength(2)
+    expect(assistant!.images!.map((i) => i.id)).toEqual(['file-1', 'file-2'])
+  })
+
+  it('keeps an assistant message that only contains images after done', async () => {
+    stubFetch(() =>
+      makeSseResponse(
+        'event: file\ndata: {"id":"file-1","mediaType":"image/png","url":"/api/v1/files/file-1"}\n\n',
+        'event: done\ndata: {"reason":"complete"}\n\n',
+      ),
+    )
+
+    const chat = useSseChat()
+    await chat.sendMessage('session-8', 'Genera una imagen')
+    const assistant = chat.messages.value.find((m) => m.role === 'assistant')
+    expect(assistant).toBeDefined()
+    expect(assistant!.content).toBe('')
+    expect(assistant!.images).toHaveLength(1)
+  })
 })
