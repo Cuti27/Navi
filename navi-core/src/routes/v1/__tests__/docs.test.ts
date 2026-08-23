@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import { createV1Routes } from "../index.js"
 import type { ChatService } from "../../../chat/chat-service.js"
+import type { TranscriptionService } from "../../../chat/transcription-service.js"
 import type { ToolExecutor } from "../../../mcp/tool-executor.js"
 import type { SessionRepository } from "../../../db/repositories/session.repository.js"
 import type { MessageRepository } from "../../../db/repositories/message.repository.js"
@@ -10,6 +11,7 @@ import { vi } from "vitest"
 function createMockV1Options() {
     return {
         chatService: {} as ChatService,
+        transcriptionService: { transcribe: vi.fn() } as unknown as TranscriptionService,
         toolExecutor: {} as ToolExecutor,
         sessionRepository: {} as SessionRepository,
         messageRepository: {} as MessageRepository,

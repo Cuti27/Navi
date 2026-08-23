@@ -47,6 +47,13 @@ async function handleSend() {
   await sendMessage(sessionId.value, text)
 }
 
+async function handleTranscribed(text: string) {
+  const trimmed = text.trim()
+  if (trimmed) {
+    await sendMessage(sessionId.value, trimmed)
+  }
+}
+
 async function handleApprove(approvalId: string) {
   await submitApproval(sessionId.value, approvalId, true)
 }
@@ -137,6 +144,7 @@ watch(sessionId, () => {
           v-model="inputText"
           :disabled="isStreaming"
           @send="handleSend"
+          @transcribed="handleTranscribed"
         />
       </div>
     </div>

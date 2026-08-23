@@ -7,6 +7,9 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   msw: true
+  onnxruntime-node: true
+  protobufjs: true
+  sharp: true
   vue-demi: true
 
 onlyBuiltDependencies:

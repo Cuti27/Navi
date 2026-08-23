@@ -1,11 +1,13 @@
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { swaggerUI } from "@hono/swagger-ui"
 import type { ChatService } from "../../chat/chat-service.js"
+import type { TranscriptionService } from "../../chat/transcription-service.js"
 import type { ToolExecutor } from "../../mcp/tool-executor.js"
 import type { SessionRepository } from "../../db/repositories/session.repository.js"
 import type { MessageRepository } from "../../db/repositories/message.repository.js"
 import type { MemoryRepository } from "../../memory/memory-repository.js"
 import { createChatRoute } from "./chat.route.js"
+import { createTranscribeRoute } from "./transcribe.route.js"
 import { createApprovalRoute } from "./approval.route.js"
 import { createMcpRoute } from "./mcp.route.js"
 import { createSessionRoute } from "./session.route.js"
@@ -16,6 +18,7 @@ import type { FileRepository } from "../../db/repositories/file.repository.js"
 
 export interface V1RoutesOptions {
     chatService: ChatService
+    transcriptionService: TranscriptionService
     toolExecutor: ToolExecutor
     sessionRepository: SessionRepository
     messageRepository: MessageRepository
@@ -28,6 +31,7 @@ export function createV1Routes(options: V1RoutesOptions) {
     const app = new OpenAPIHono()
 
     app.route("/", createChatRoute(options.chatService))
+    app.route("/", createTranscribeRoute(options.transcriptionService))
     app.route("/", createApprovalRoute(options.chatService))
     app.route("/", createMcpRoute(options.toolExecutor))
     app.route("/", createSessionRoute(options.sessionRepository, options.messageRepository))

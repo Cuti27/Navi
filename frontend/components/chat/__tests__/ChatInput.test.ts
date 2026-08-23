@@ -11,7 +11,7 @@ describe('ChatInput', () => {
 
   it('disables send button when text is empty', () => {
     const wrapper = mount(ChatInput)
-    const button = wrapper.find('button')
+    const button = wrapper.find('[data-testid="send-button"]')
     expect(button.attributes('disabled')).toBeDefined()
   })
 
@@ -19,7 +19,7 @@ describe('ChatInput', () => {
     const wrapper = mount(ChatInput)
     const textarea = wrapper.find('textarea')
     await textarea.setValue('Hello')
-    const button = wrapper.find('button')
+    const button = wrapper.find('[data-testid="send-button"]')
     expect(button.attributes('disabled')).toBeUndefined()
   })
 

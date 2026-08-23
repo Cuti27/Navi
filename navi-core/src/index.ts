@@ -12,6 +12,7 @@ import { McpToolService } from "./mcp/mcp-tool-service.js"
 import { ChatService } from "./chat/chat-service.js"
 import { CompactionService } from "./chat/compaction-service.js"
 import { LlmTitleGenerator } from "./chat/title-generator.js"
+import { WhisperTranscriptionService } from "./chat/transcription-service.js"
 import { createV1Routes } from "./routes/v1/index.js"
 import { requestLogger } from "./middleware/request-logger.js"
 import { getLogger } from "./logger/logger.js"
@@ -95,6 +96,11 @@ const titleGenerator = new LlmTitleGenerator({
     maxWords: Number(process.env.TITLE_MAX_WORDS || "6"),
 })
 
+const transcriptionService = new WhisperTranscriptionService({
+    model: process.env.STT_MODEL ?? "Xenova/whisper-base",
+    language: process.env.STT_LANGUAGE ?? "es",
+})
+
 const chatService = new ChatService({
     provider,
     modelId,
@@ -138,7 +144,7 @@ app.use("/api/v1/*", masterAuth)
 
 app.route(
     "/api/v1",
-    createV1Routes({ chatService, toolExecutor, sessionRepository, messageRepository, memoryRepository, fileStore, fileRepository })
+    createV1Routes({ chatService, transcriptionService, toolExecutor, sessionRepository, messageRepository, memoryRepository, fileStore, fileRepository })
 )
 
 serve({

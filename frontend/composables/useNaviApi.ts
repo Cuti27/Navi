@@ -80,11 +80,22 @@ export function useNaviApi() {
     return response
   }
 
-  async function getFile(id: string): Promise<Blob> {
+async function getFile(id: string): Promise<Blob> {
     return $fetch<Blob>(`/files/${id}`, {
       baseURL,
       headers: authHeaders(),
       responseType: 'blob',
+    })
+  }
+
+  async function transcribeAudio(blob: Blob): Promise<{ text: string }> {
+    const fd = new FormData()
+    fd.append('audio', blob, 'voice.wav')
+    return $fetch<{ text: string }>('/chat/transcribe', {
+      baseURL,
+      method: 'POST',
+      body: fd,
+      headers: { Authorization: `Bearer ${auth.token}` },
     })
   }
 
@@ -115,6 +126,7 @@ export function useNaviApi() {
     getPendingApprovals,
     getFile,
     sendMessage,
+    transcribeAudio,
     submitApprovals,
   }
 }
