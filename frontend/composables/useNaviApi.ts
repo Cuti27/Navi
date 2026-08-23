@@ -80,6 +80,14 @@ export function useNaviApi() {
     return response
   }
 
+  async function getFile(id: string): Promise<Blob> {
+    return $fetch<Blob>(`/files/${id}`, {
+      baseURL,
+      headers: authHeaders(),
+      responseType: 'blob',
+    })
+  }
+
   async function submitApprovals(
     body: ApprovalSubmission,
     signal?: AbortSignal
@@ -105,6 +113,7 @@ export function useNaviApi() {
     updateSession,
     deleteSession,
     getPendingApprovals,
+    getFile,
     sendMessage,
     submitApprovals,
   }

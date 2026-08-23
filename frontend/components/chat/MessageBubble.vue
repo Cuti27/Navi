@@ -2,6 +2,7 @@
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import MarkdownRenderer from './MarkdownRenderer.vue'
+import MessageImage from './MessageImage.vue'
 import ToolSummary from './ToolSummary.vue'
 import type { UIMessage, ToolSummaryCall } from '~/lib/types'
 
@@ -38,6 +39,16 @@ const time = computed(() => {
           <p class="whitespace-pre-wrap body-md">{{ message.content }}</p>
         </template>
         <MarkdownRenderer v-else :content="message.content" />
+        <div
+          v-if="message.images?.length"
+          class="mt-2 flex flex-col gap-2"
+        >
+          <MessageImage
+            v-for="img in message.images"
+            :key="img.id"
+            :image="img"
+          />
+        </div>
       </div>
       <ToolSummary
         v-else

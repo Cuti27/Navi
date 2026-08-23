@@ -19,6 +19,12 @@ export interface Message {
   createdAt: string
 }
 
+export interface MessageImage {
+  id: string
+  mediaType: string
+  url: string
+}
+
 export interface PendingApproval {
   id: string
   sessionId: string
@@ -76,11 +82,19 @@ export interface DoneEvent {
   pendingCount: number
 }
 
+export interface FileEvent {
+  type: 'file'
+  id: string
+  mediaType: string
+  url: string
+}
+
 export type SseEvent =
   | TextDeltaEvent
   | ToolApprovalRequestEvent
   | ToolResultEvent
   | ToolOutputDeniedEvent
+  | FileEvent
   | DoneEvent
 
 export interface ApprovalPayload {
@@ -103,5 +117,6 @@ export interface UIMessage {
   role: 'user' | 'assistant' | 'tool-summary'
   content: string
   meta?: unknown
+  images?: MessageImage[]
   createdAt?: string
 }

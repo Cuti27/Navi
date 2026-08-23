@@ -15,6 +15,8 @@ import type { ApprovalRepository } from "../db/repositories/approval.repository.
 import type { Message, NewMessage } from "../db/schema.js"
 import { getLogger } from "../logger/logger.js"
 import type { CompactionService } from "./compaction-service.js"
+import type { FileStore } from "../files/file-store.js"
+import type { FileRepository } from "../db/repositories/file.repository.js"
 import type { MemoryContextBuilder } from "../memory/memory-context.js"
 import { mcpConfig } from "../mcp/mcp-config.js"
 
@@ -31,6 +33,13 @@ export interface ChatServiceOptions {
     readOnlyToolNames?: Set<string>
     memoryContextBuilder?: MemoryContextBuilder
     maxHistoryMessages?: number
+    /**
+     * Optional stores for generated files (image parts emitted by the model).
+     * When present, `file` parts are persisted to disk + DB and forwarded to
+     * the frontend via an `event: file` SSE frame.
+     */
+    fileStore?: FileStore
+    fileRepository?: FileRepository
 }
 
 export interface ApprovalResponseInput {
@@ -401,7 +410,10 @@ export class ChatService {
 
         const sseStream = new ReadableStream({
             start: async (controller) => {
-                let runResult: { responseMessages: PromiseLike<ModelMessage[]> } | undefined
+                let runResult: {
+                    responseMessages: PromiseLike<ModelMessage[]>
+                    emittedFiles: Array<{ id: string; mediaType: string }>
+                } | undefined
                 try {
                     runResult = await this.runStream(sessionId, context, controller, encoder)
                     log.info("runStream completed, closing controller")
@@ -423,7 +435,7 @@ export class ChatService {
                             setTimeout(() => reject(new Error("responseMessages timeout")), 60000)
                         ),
                     ])
-                    await this.persistResponseMessages(sessionId, responseMessages)
+                    await this.persistResponseMessages(sessionId, responseMessages, runResult.emittedFiles)
                     log.info("response messages persisted")
                 } catch (err) {
                     log.error({ err }, "failed to persist response messages")
@@ -445,7 +457,10 @@ export class ChatService {
         context: { system: string; messages: ModelMessage[] },
         controller: ReadableStreamDefaultController<Uint8Array>,
         encoder: TextEncoder
-    ): Promise<{ responseMessages: PromiseLike<ModelMessage[]> }> {
+    ): Promise<{
+        responseMessages: PromiseLike<ModelMessage[]>
+        emittedFiles: Array<{ id: string; mediaType: string }>
+    }> {
         const {
             provider,
             modelId,
@@ -538,6 +553,8 @@ export class ChatService {
             signature?: string
         }> = []
 
+        const emittedFiles: Array<{ id: string; mediaType: string }> = []
+
         const iterator = result.fullStream[Symbol.asyncIterator]()
         const INACTIVITY_MS = 30000
         let chunkCount = 0
@@ -562,12 +579,13 @@ export class ChatService {
                 break
             }
             chunkCount++
-            this.handleStreamPart(
+            await this.handleStreamPart(
                 next.value,
                 controller,
                 encoder,
                 sessionId,
-                pendingApprovals
+                pendingApprovals,
+                emittedFiles
             )
         }
 
@@ -605,10 +623,10 @@ export class ChatService {
             "stream finished"
         )
 
-        return { responseMessages: result.responseMessages as PromiseLike<ModelMessage[]> }
+        return { responseMessages: result.responseMessages as PromiseLike<ModelMessage[]>, emittedFiles }
     }
 
-    private handleStreamPart(
+    private async handleStreamPart(
         part: TextStreamPart<Record<string, Tool>>,
         controller: ReadableStreamDefaultController<Uint8Array>,
         encoder: TextEncoder,
@@ -621,12 +639,48 @@ export class ChatService {
             input: unknown
             description: string
             signature?: string
-        }>
-    ): void {
+        }>,
+        emittedFiles: Array<{ id: string; mediaType: string }>
+    ): Promise<void> {
         if (part.type === "text-delta") {
             log.trace({ text: part.text, hasSpace: part.text.includes(" ") }, "text-delta")
             controller.enqueue(
                 encoder.encode(`data: ${JSON.stringify(part.text)}\n\n`)
+            )
+            return
+        }
+
+        if (part.type === "file") {
+            const { fileStore, fileRepository } = this.options
+            const id = randomUUID()
+            const generated = part.file
+            // Prefer the raw bytes when available; fall back to base64.
+            const binary = generated.uint8Array
+                ? Buffer.from(generated.uint8Array)
+                : Buffer.from(generated.base64, "base64")
+
+            if (fileStore) {
+                await fileStore.writeFile(sessionId, id, binary)
+            }
+            if (fileRepository) {
+                await fileRepository.create({
+                    id,
+                    sessionId,
+                    mediaType: generated.mediaType,
+                    size: binary.byteLength,
+                })
+            }
+
+            emittedFiles.push({ id, mediaType: generated.mediaType })
+
+            controller.enqueue(
+                encoder.encode(
+                    `event: file\ndata: ${JSON.stringify({
+                        id,
+                        mediaType: generated.mediaType,
+                        url: `/api/v1/files/${id}`,
+                    })}\n\n`
+                )
             )
             return
         }
@@ -709,24 +763,39 @@ export class ChatService {
 
     private async persistResponseMessages(
         sessionId: string,
-        responseMessages: ModelMessage[]
+        responseMessages: ModelMessage[],
+        emittedFiles: Array<{ id: string; mediaType: string }> = []
     ): Promise<void> {
         const { messageRepository } = this.options
 
-        for (const msg of responseMessages) {
+        // Generated files belong to the final assistant output. Attach the file
+        // parts only to the LAST assistant message in the response; earlier
+        // assistant messages are intermediate steps (e.g. tool-call-only turns).
+        const lastAssistantIndex = responseMessages.map((m) => m.role).lastIndexOf("assistant")
+        const fileParts = emittedFiles.map((f) => ({
+            type: "file" as const,
+            id: f.id,
+            mediaType: f.mediaType,
+        }))
+
+        for (const [index, msg] of responseMessages.entries()) {
             const id = randomUUID()
 
             if (msg.role === "assistant") {
                 const parts = Array.isArray(msg.content) ? msg.content : undefined
                 const text = typeof msg.content === "string" ? msg.content : extractText(parts)
                 const toolCalls = parts?.filter((p) => p.type === "tool-call")
+                const finalParts =
+                    index === lastAssistantIndex && fileParts.length > 0
+                        ? [...(parts ?? []), ...fileParts]
+                        : parts
 
                 await messageRepository.create({
                     id,
                     sessionId,
                     role: "assistant",
                     content: text,
-                    parts: parts as unknown as NewMessage["parts"],
+                    parts: finalParts as unknown as NewMessage["parts"],
                     toolCalls: toolCalls as unknown as NewMessage["toolCalls"],
                 })
 

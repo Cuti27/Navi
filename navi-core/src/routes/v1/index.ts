@@ -10,6 +10,9 @@ import { createApprovalRoute } from "./approval.route.js"
 import { createMcpRoute } from "./mcp.route.js"
 import { createSessionRoute } from "./session.route.js"
 import { createMemoryRoute } from "./memory.route.js"
+import { createFileRoute } from "./file.route.js"
+import type { FileStore } from "../../files/file-store.js"
+import type { FileRepository } from "../../db/repositories/file.repository.js"
 
 export interface V1RoutesOptions {
     chatService: ChatService
@@ -17,6 +20,8 @@ export interface V1RoutesOptions {
     sessionRepository: SessionRepository
     messageRepository: MessageRepository
     memoryRepository: MemoryRepository
+    fileStore?: FileStore
+    fileRepository?: FileRepository
 }
 
 export function createV1Routes(options: V1RoutesOptions) {
@@ -27,6 +32,9 @@ export function createV1Routes(options: V1RoutesOptions) {
     app.route("/", createMcpRoute(options.toolExecutor))
     app.route("/", createSessionRoute(options.sessionRepository, options.messageRepository))
     app.route("/", createMemoryRoute(options.memoryRepository))
+    if (options.fileStore && options.fileRepository) {
+        app.route("/", createFileRoute(options.fileStore, options.fileRepository))
+    }
 
     if (process.env.NODE_ENV && process.env.NODE_ENV !== "production") {
         app.doc("/openapi.json", {

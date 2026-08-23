@@ -20,16 +20,40 @@ export function useSseChat() {
   }
 
   function loadHistory(
-    backendMessages: Array<{ id: string; role: string; content: string; createdAt: string }>
+    backendMessages: Array<{
+      id: string
+      role: string
+      content: string
+      createdAt: string
+      parts?: unknown
+      imageUrl?: string | null
+    }>
   ) {
     messages.value = backendMessages
       .filter((m) => m.role === 'user' || (m.role === 'assistant' && m.content.trim() !== ''))
-      .map((m) => ({
-        id: m.id,
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-        createdAt: m.createdAt,
-      }))
+      .map((m) => {
+        // Map persisted file parts (e.g. { type: "file", id, mediaType }) back
+        // to images so generated files render again after a page reload.
+        const parts = Array.isArray(m.parts) ? m.parts : []
+        const images = parts
+          .filter(
+            (p): p is { type: string; id: string; mediaType?: string } =>
+              typeof p === 'object' && p !== null && (p as { type?: string }).type === 'file',
+          )
+          .map((p) => ({
+            id: p.id,
+            mediaType: p.mediaType ?? 'application/octet-stream',
+            url: `${api.baseURL}/files/${p.id}`,
+          }))
+
+        return {
+          id: m.id,
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+          images: images.length > 0 ? images : undefined,
+          createdAt: m.createdAt,
+        }
+      })
   }
 
   async function loadPendingApprovals(sessionId: string) {
@@ -96,7 +120,9 @@ export function useSseChat() {
 
   function pruneTrailingEmptyAssistant() {
     const last = messages.value[messages.value.length - 1]
-    if (last?.role === 'assistant' && last.content === '') {
+    // Keep the assistant message if it carries generated images, even when it
+    // has no text content (a model can emit a file part with no text-delta).
+    if (last?.role === 'assistant' && last.content === '' && !last.images?.length) {
       messages.value = messages.value.slice(0, -1)
     }
   }
@@ -186,6 +212,29 @@ export function useSseChat() {
 
       appendToLastAssistant(text)
       agent.setState('thinking')
+      return
+    }
+
+    if (event === 'file') {
+      try {
+        const payload = JSON.parse(data)
+        const last = messages.value[messages.value.length - 1]
+        if (!last || last.role !== 'assistant') {
+          addAssistantPlaceholder()
+        }
+        const assistant = messages.value[messages.value.length - 1]
+        if (assistant) {
+          messages.value[messages.value.length - 1] = {
+            ...assistant,
+            images: [
+              ...(assistant.images ?? []),
+              { id: payload.id, mediaType: payload.mediaType, url: payload.url },
+            ],
+          }
+        }
+      } catch {
+        // ignore malformed event
+      }
       return
     }
 

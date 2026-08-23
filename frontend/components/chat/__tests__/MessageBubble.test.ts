@@ -1,8 +1,46 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { flushPromises } from '@vue/test-utils'
+import { setActivePinia, createPinia } from 'pinia'
 import MessageBubble from '../MessageBubble.vue'
 
+const mockGetFile = vi.fn()
+
+vi.mock('~/composables/useNaviApi', () => ({
+  useNaviApi: () => ({
+    baseURL: 'http://localhost:3000/api/v1',
+    getFile: mockGetFile,
+  }),
+}))
+
+const originalCreateObjectURL = URL.createObjectURL
+const originalRevokeObjectURL = URL.revokeObjectURL
+
 describe('MessageBubble', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    mockGetFile.mockReset()
+    mockGetFile.mockResolvedValue(new Blob(['img'], { type: 'image/png' }))
+    Object.defineProperty(URL, 'createObjectURL', {
+      writable: true,
+      value: vi.fn(() => 'blob:mock-url'),
+    })
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      writable: true,
+      value: vi.fn(),
+    })
+  })
+
+  afterEach(() => {
+    Object.defineProperty(URL, 'createObjectURL', {
+      writable: true,
+      value: originalCreateObjectURL,
+    })
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      writable: true,
+      value: originalRevokeObjectURL,
+    })
+  })
   it('renders user message content', async () => {
     const wrapper = await mountSuspended(MessageBubble, {
       props: {
@@ -59,5 +97,29 @@ describe('MessageBubble', () => {
       },
     })
     expect(wrapper.text()).toContain(':')
+  })
+
+  it('renders assistant images from message.images', async () => {
+    const wrapper = await mountSuspended(MessageBubble, {
+      props: {
+        message: {
+          id: '2',
+          role: 'assistant',
+          content: 'Aquí tienes la imagen',
+          images: [
+            {
+              id: 'file-1',
+              mediaType: 'image/png',
+              url: 'http://localhost:3000/api/v1/files/file-1',
+            },
+          ],
+        },
+      },
+    })
+    await flushPromises()
+
+    const img = wrapper.find('img')
+    expect(img.exists()).toBe(true)
+    expect(img.attributes('src')).toBe('blob:mock-url')
   })
 })
