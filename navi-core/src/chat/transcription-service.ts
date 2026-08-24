@@ -57,7 +57,12 @@ export class WhisperTranscriptionService implements TranscriptionService {
                 this.log.info({ model: this.model, cacheDir }, "loading whisper pipeline")
                 const loadAsr = pipeline as unknown as AsrPipelineFactory
                 return loadAsr("automatic-speech-recognition", this.model, { dtype: "q8" })
-            })()
+            })().catch((err) => {
+                // Do not cache a rejected promise: a transient failure (e.g. a
+                // failed model download) must allow the next call to retry.
+                this.pipelinePromise = null
+                throw err
+            })
         }
         return this.pipelinePromise
     }

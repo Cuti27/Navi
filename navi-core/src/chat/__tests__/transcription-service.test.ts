@@ -82,6 +82,22 @@ describe("WhisperTranscriptionService", () => {
     expect(pipe).toHaveBeenCalledTimes(2)
   })
 
+  it("retries loading the pipeline when the first load fails", async () => {
+    mockPipeline.mockRejectedValueOnce(new Error("modelo caído"))
+    const pipe = vi.fn().mockResolvedValue({ text: "segunda" })
+    mockPipeline.mockResolvedValueOnce(pipe)
+
+    const service = new WhisperTranscriptionService()
+    const wav = makeWavPcm16(new Int16Array([0, 0]), 1)
+
+    await expect(service.transcribe(wav, "audio/wav")).rejects.toThrow(
+      "La transcripción falló: modelo caído"
+    )
+    const text = await service.transcribe(wav, "audio/wav")
+    expect(text).toBe("segunda")
+    expect(mockPipeline).toHaveBeenCalledTimes(2)
+  })
+
   it("honors model and language options", async () => {
     const pipe = vi.fn().mockResolvedValue({ text: "hola" })
     mockPipeline.mockResolvedValue(pipe)
