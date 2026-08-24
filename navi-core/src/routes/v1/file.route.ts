@@ -25,7 +25,7 @@ export function createFileRoute(
                 description: "File content",
                 content: {
                     "*/*": {
-                        schema: z.instanceof(Blob),
+                        schema: z.any().openapi({ type: "string", format: "binary" }),
                     },
                 },
             },

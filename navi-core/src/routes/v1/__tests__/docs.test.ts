@@ -6,6 +6,8 @@ import type { ToolExecutor } from "../../../mcp/tool-executor.js"
 import type { SessionRepository } from "../../../db/repositories/session.repository.js"
 import type { MessageRepository } from "../../../db/repositories/message.repository.js"
 import type { MemoryRepository } from "../../../memory/memory-repository.js"
+import type { FileStore } from "../../../files/file-store.js"
+import type { FileRepository } from "../../../db/repositories/file.repository.js"
 import { vi } from "vitest"
 
 function createMockV1Options() {
@@ -16,6 +18,9 @@ function createMockV1Options() {
         sessionRepository: {} as SessionRepository,
         messageRepository: {} as MessageRepository,
         memoryRepository: {} as MemoryRepository,
+        // Mount the file route so its OpenAPI schema is exercised.
+        fileStore: {} as FileStore,
+        fileRepository: {} as FileRepository,
     }
 }
 
@@ -42,6 +47,11 @@ describe("Swagger docs", () => {
         const app = createV1Routes(createMockV1Options())
         const res = await app.request("/openapi.json")
         expect(res.status).toBe(200)
+        const doc = await res.json()
+        expect(doc.paths["/files/:id"]).toBeDefined()
+        expect(doc.paths["/chat"]).toBeDefined()
+        // Plain Hono routes (multipart) are not part of the OpenAPI doc.
+        expect(doc.paths["/chat/transcribe"]).toBeUndefined()
     })
 
     it("returns 404 for /docs in production", async () => {
