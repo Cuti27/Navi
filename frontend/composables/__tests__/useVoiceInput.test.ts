@@ -112,8 +112,10 @@ describe('useVoiceInput', () => {
   })
 
   it('cancel discards the recording and stops tracks', async () => {
-    const stream = stubMediaDevices(() => Promise.resolve(stream))
     const track = { stop: vi.fn() }
+    const stream = stubMediaDevices(() =>
+      Promise.resolve({ getTracks: () => [track] } as unknown as MediaStream)
+    )
     Object.assign(stream, { getTracks: () => [track] })
 
     const { voice } = mountComposable()

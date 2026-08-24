@@ -55,27 +55,27 @@ describe('encodeWav', () => {
 })
 
 describe('blobToWav16k', () => {
+  class FakeAudioContext {
+    decodeAudioData = vi.fn().mockResolvedValue(makeFakeBuffer(1, 16000, 2))
+    close = vi.fn()
+    constructor() {
+      captured = this
+    }
+  }
+  let captured: FakeAudioContext | null = null
+
   afterEach(() => {
+    captured = null
     vi.unstubAllGlobals()
   })
 
   it('decodes a blob and re-encodes it as WAV', async () => {
-    let instance: FakeAudioContext | null = null
-    class FakeAudioContext {
-      decodeAudioData = vi.fn().mockResolvedValue(
-        makeFakeBuffer(1, 16000, 2)
-      )
-      close = vi.fn()
-      constructor() {
-        instance = this
-      }
-    }
-    vi.stubGlobal('AudioContext', FakeAudioContext)
+    vi.stubGlobal('AudioContext', FakeAudioContext as unknown as typeof AudioContext)
 
     const input = new Blob(['fake-webm'], { type: 'audio/webm' })
     const wav = await blobToWav16k(input)
     expect(wav.type).toBe('audio/wav')
-    expect(instance?.decodeAudioData).toHaveBeenCalled()
-    expect(instance?.close).toHaveBeenCalled()
+    expect(captured?.decodeAudioData).toHaveBeenCalled()
+    expect(captured?.close).toHaveBeenCalled()
   })
 })
