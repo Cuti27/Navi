@@ -13,6 +13,7 @@ import type { ApprovalRepository } from "../../db/repositories/approval.reposito
 import type { FileRepository } from "../../db/repositories/file.repository.js"
 import type { MemoryRepository } from "../../memory/memory-repository.js"
 import type { AIProvider } from "../../providers/ai-provider.js"
+import type { TranscriptionService } from "../transcription-service.js"
 
 function createAsyncIterable<T>(chunks: T[]): AsyncIterable<T> {
   return {
@@ -121,6 +122,7 @@ describe("file streaming", () => {
 
     app = createV1Routes({
       chatService,
+      transcriptionService: { transcribe: vi.fn() } as unknown as TranscriptionService,
       toolExecutor,
       sessionRepository: sessionRepo,
       messageRepository: messageRepo,
@@ -228,6 +230,7 @@ describe("file streaming", () => {
     })
     const bareApp = createV1Routes({
       chatService: bareChatService,
+      transcriptionService: { transcribe: vi.fn() } as unknown as TranscriptionService,
       toolExecutor: createMockToolExecutor({ getEnabledTools: async () => ({}) }),
       sessionRepository: sessionRepo,
       messageRepository: messageRepo,

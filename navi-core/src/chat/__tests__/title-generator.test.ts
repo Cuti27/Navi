@@ -106,7 +106,9 @@ describe("LlmTitleGenerator", () => {
             createMockMessage("m1", "s1"),
         ])
         const { generateText } = await import("ai")
-        vi.mocked(generateText).mockResolvedValueOnce({ text: "" })
+        vi.mocked(generateText).mockResolvedValueOnce({
+            text: "",
+        } as unknown as Awaited<ReturnType<typeof generateText>>)
 
         await generator.generateAndUpdate("s1", "Configura el servidor")
 
@@ -155,7 +157,7 @@ describe("LlmTitleGenerator", () => {
         const { generateText } = await import("ai")
         vi.mocked(generateText).mockResolvedValueOnce({
             text: '"configura un servidor de plex y hazlo accesible desde fuera"',
-        })
+        } as unknown as Awaited<ReturnType<typeof generateText>>)
 
         await generator.generateAndUpdate("s1", "Instala plex en el servidor")
 
