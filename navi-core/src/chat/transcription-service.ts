@@ -65,15 +65,17 @@ export class WhisperTranscriptionService implements TranscriptionService {
     async transcribe(audio: Buffer, mimeType: string): Promise<string> {
         const startedAt = Date.now()
         try {
-            const pipe = await this.getPipeline()
-            const audioFloat32 = decodeWavToFloat32(audio)
-
-            const durationSeconds = audioFloat32.length / readSampleRate(audio)
+            // Reject long audio before decoding/allocating the full buffer or
+            // running inference, to bound CPU/memory per request.
+            const durationSeconds = wavDurationSeconds(audio)
             if (durationSeconds > this.maxAudioSeconds) {
                 throw new Error(
                     `Audio demasiado largo (${durationSeconds.toFixed(1)}s, máximo ${this.maxAudioSeconds}s)`
                 )
             }
+
+            const pipe = await this.getPipeline()
+            const audioFloat32 = decodeWavToFloat32(audio)
 
             const output = await pipe(audioFloat32, {
                 language: this.language,
@@ -100,28 +102,20 @@ export class WhisperTranscriptionService implements TranscriptionService {
     }
 }
 
-/**
- * Reads the sample rate from a RIFF/WAVE header (offset 24, uint32 LE).
- * Throws if the buffer does not look like a WAV.
- */
-export function readSampleRate(buffer: Buffer): number {
-    if (buffer.length < 28) {
-        throw new Error("Audio demasiado corto para ser un WAV")
-    }
-    if (buffer.toString("ascii", 0, 4) !== "RIFF" || buffer.toString("ascii", 8, 12) !== "WAVE") {
-        throw new Error("Formato WAVE no encontrado")
-    }
-    return buffer.readUInt32LE(24)
+interface WavHeader {
+    audioFormat: number
+    numChannels: number
+    sampleRate: number
+    bitsPerSample: number
+    dataOffset: number
+    dataSize: number
 }
 
 /**
- * Parses a RIFF/WAVE buffer into a normalized mono Float32Array in [-1, 1].
- *
- * Supports PCM16 (`audioFormat = 1`) and IEEE float32 (`audioFormat = 3`),
- * any channel count (averaged to mono) and any sample rate. No external
- * dependencies.
+ * Parses the RIFF/WAVE header: validates the signature, format and chunk
+ * structure and returns the fields needed to decode or measure the audio.
  */
-export function decodeWavToFloat32(buffer: Buffer): Float32Array {
+function parseWavHeader(buffer: Buffer): WavHeader {
     if (buffer.length < 44) {
         throw new Error("Audio demasiado corto para ser un WAV")
     }
@@ -165,6 +159,34 @@ export function decodeWavToFloat32(buffer: Buffer): Float32Array {
     if (dataOffset === -1 || dataSize === 0 || dataOffset >= buffer.length) {
         throw new Error("Chunk de datos no encontrado")
     }
+
+    return { audioFormat, numChannels, sampleRate, bitsPerSample, dataOffset, dataSize }
+}
+
+/**
+ * Returns the duration in seconds of a RIFF/WAVE buffer, using only the
+ * header (no full decode). Throws if the buffer is not a valid WAV.
+ */
+export function wavDurationSeconds(buffer: Buffer): number {
+    const { sampleRate, numChannels, bitsPerSample, dataSize } = parseWavHeader(buffer)
+    const bytesPerSample = bitsPerSample / 8
+    if (bytesPerSample === 0 || numChannels === 0) {
+        throw new Error("Parámetros de audio inválidos")
+    }
+    const frameCount = Math.floor(dataSize / (bytesPerSample * numChannels))
+    return frameCount / sampleRate
+}
+
+/**
+ * Parses a RIFF/WAVE buffer into a normalized mono Float32Array in [-1, 1].
+ *
+ * Supports PCM16 (`audioFormat = 1`) and IEEE float32 (`audioFormat = 3`),
+ * any channel count (averaged to mono) and any sample rate. No external
+ * dependencies.
+ */
+export function decodeWavToFloat32(buffer: Buffer): Float32Array {
+    const { audioFormat, numChannels, sampleRate, bitsPerSample, dataOffset, dataSize } =
+        parseWavHeader(buffer)
 
     const bytesPerSample = bitsPerSample / 8
     if (bytesPerSample === 0 || numChannels === 0) {

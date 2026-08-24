@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto"
 import { z, OpenAPIHono, createRoute } from "@hono/zod-openapi"
 import type { SessionRepository } from "../../db/repositories/session.repository.js"
 import type { MessageRepository } from "../../db/repositories/message.repository.js"
+import { DEFAULT_SESSION_TITLE } from "../../chat/title-generator.js"
 
 const SessionSchema = z.object({
     id: z.string().uuid(),
@@ -120,7 +121,7 @@ export function createSessionRoute(
         const { title } = c.req.valid("json")
         const session = await sessionRepository.create({
             id: randomUUID(),
-            title: title ?? "Nueva conversación",
+            title: title ?? DEFAULT_SESSION_TITLE,
         })
         return c.json(session, 201)
     })

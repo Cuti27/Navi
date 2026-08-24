@@ -23,7 +23,7 @@ async function loadSessions() {
 }
 
 async function createNewSession() {
-  const session = await api.createSession('Nueva conversación')
+  const session = await api.createSession()
   await router.push(`/chat/${session.id}`)
 }
 

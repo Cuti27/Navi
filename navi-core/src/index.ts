@@ -20,6 +20,8 @@ import { masterAuth } from "./middleware/auth.js"
 import { createRateLimiter } from "./middleware/rate-limiter.js"
 import { createBodySizeLimit } from "./middleware/body-size-limit.js"
 import { createSecurityHeaders } from "./middleware/security-headers.js"
+import { bodyLimit } from "hono/body-limit"
+import { getMaxBodySize } from "./config/limits.js"
 import { createDb } from "./db/client.js"
 import { DrizzleSessionRepository } from "./db/repositories/session.repository.js"
 import { DrizzleMessageRepository } from "./db/repositories/message.repository.js"
@@ -138,6 +140,24 @@ app.use("/api/v1/*", rateLimit)
 
 const bodySizeLimit = createBodySizeLimit()
 app.use("/api/v1/*", bodySizeLimit)
+
+// Real streaming enforcement (the middleware above only checks the declared
+// content-length, which chunked requests can bypass).
+const maxBodySize = getMaxBodySize()
+app.use(
+    "/api/v1/*",
+    bodyLimit({
+        maxSize: maxBodySize,
+        onError: (c) =>
+            c.json(
+                {
+                    error: "Payload Too Large",
+                    message: `Request body exceeds the maximum size of ${maxBodySize} bytes`,
+                },
+                413
+            ),
+    })
+)
 
 app.use("/api/v1/*", requestLogger)
 app.use("/api/v1/*", masterAuth)

@@ -35,10 +35,11 @@ export class FileStore {
      * escape `this.dir` (path separators, `..`, traversal via resolve).
      */
     private assertSafeId(id: string): void {
-        if (!id || id.includes("/") || id.includes("\\") || id === "." || id === ".." || id.includes("..")) {
+        if (!id || id.includes("/") || id.includes("\\") || id.includes("..")) {
             throw new Error(`Invalid file id`)
         }
-        if (!resolve(this.dir, id).startsWith(this.dir + "/")) {
+        const prefix = this.dir.endsWith("/") ? this.dir : this.dir + "/"
+        if (!resolve(this.dir, id).startsWith(prefix)) {
             throw new Error(`Invalid file id`)
         }
     }

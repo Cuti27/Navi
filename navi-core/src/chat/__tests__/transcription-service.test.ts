@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import {
     WhisperTranscriptionService,
     decodeWavToFloat32,
-    readSampleRate,
+    wavDurationSeconds,
 } from "../transcription-service.js"
 
 const { mockPipeline, mockEnv } = vi.hoisted(() => ({
@@ -202,13 +202,19 @@ describe("decodeWavToFloat32", () => {
   })
 })
 
-describe("readSampleRate", () => {
-  it("reads the sample rate from a WAV header", () => {
-    expect(readSampleRate(makeWavPcm16(new Int16Array([0]), 1, 44100))).toBe(44100)
-    expect(readSampleRate(makeWavPcm16(new Int16Array([0]), 1, 16000))).toBe(16000)
+describe("wavDurationSeconds", () => {
+  it("computes duration from the WAV header without decoding", () => {
+    // 3 s at 16000 Hz mono.
+    const wav = makeWavPcm16(new Int16Array(16000 * 3).fill(0), 1, 16000)
+    expect(wavDurationSeconds(wav)).toBeCloseTo(3, 5)
+    // Stereo halves the frame count per sample.
+    const stereo = makeWavPcm16(new Int16Array(16000 * 2 * 2).fill(0), 2, 16000)
+    expect(wavDurationSeconds(stereo)).toBeCloseTo(2, 5)
   })
 
   it("rejects a non-WAV buffer", () => {
-    expect(() => readSampleRate(Buffer.alloc(30).fill(0))).toThrow("Formato WAVE no encontrado")
+    expect(() => wavDurationSeconds(Buffer.alloc(44).fill(0))).toThrow(
+      "Firma RIFF no encontrada"
+    )
   })
 })

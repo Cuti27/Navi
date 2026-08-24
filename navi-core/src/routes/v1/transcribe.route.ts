@@ -1,11 +1,10 @@
 import { Hono } from "hono"
 import { bodyLimit } from "hono/body-limit"
 import type { TranscriptionService } from "../../chat/transcription-service.js"
+import { getMaxBodySize } from "../../config/limits.js"
 import { getLogger } from "../../logger/logger.js"
 
 const log = getLogger("http")
-
-const MAX_TRANSCRIBE_SIZE = Number(process.env.MAX_BODY_SIZE) || 10 * 1024 * 1024
 
 /**
  * POST /chat/transcribe — accepts a `multipart/form-data` upload with an
@@ -17,18 +16,19 @@ const MAX_TRANSCRIBE_SIZE = Number(process.env.MAX_BODY_SIZE) || 10 * 1024 * 102
  */
 export function createTranscribeRoute(transcriptionService: TranscriptionService) {
     const app = new Hono()
+    const maxTranscribeSize = getMaxBodySize()
 
     // Enforce the size limit on the actual stream (the global middleware only
     // checks the declared content-length, which chunked requests can bypass).
     app.use(
         "/chat/transcribe",
         bodyLimit({
-            maxSize: MAX_TRANSCRIBE_SIZE,
+            maxSize: maxTranscribeSize,
             onError: (c) =>
                 c.json(
                     {
                         error: "Payload Too Large",
-                        message: `Request body exceeds the maximum size of ${MAX_TRANSCRIBE_SIZE} bytes`,
+                        message: `Request body exceeds the maximum size of ${maxTranscribeSize} bytes`,
                     },
                     413
                 ),

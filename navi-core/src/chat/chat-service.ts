@@ -68,6 +68,9 @@ export class ChatService {
     private readonly options: ChatServiceOptions
 
     constructor(options: ChatServiceOptions) {
+        if (Boolean(options.fileStore) !== Boolean(options.fileRepository)) {
+            throw new Error("fileStore and fileRepository must be provided together")
+        }
         this.options = options
     }
 
@@ -661,20 +664,23 @@ export class ChatService {
             const id = randomUUID()
             const generated = part.file
             // Prefer the raw bytes when available; fall back to base64.
-            const binary = generated.uint8Array
+            const binary = generated.uint8Array?.length
                 ? Buffer.from(generated.uint8Array)
                 : Buffer.from(generated.base64, "base64")
 
-            if (fileStore) {
-                await fileStore.writeFile(sessionId, id, binary)
-            }
-            if (fileRepository) {
-                await fileRepository.create({
+            try {
+                await fileStore?.writeFile(sessionId, id, binary)
+                await fileRepository?.create({
                     id,
                     sessionId,
                     mediaType: generated.mediaType,
                     size: binary.byteLength,
                 })
+            } catch (err) {
+                // A failed persist must not kill the whole stream: log and skip
+                // the event so the client still receives the rest of the text.
+                log.error({ err, sessionId }, "failed to persist generated file, skipping")
+                return
             }
 
             emittedFiles.push({ id, mediaType: generated.mediaType })
