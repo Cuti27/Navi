@@ -71,6 +71,7 @@ cp .env.example .env
 | `AI_PROVIDER` | No | AI provider: `openai` or `opencode`. | `openai` |
 | `AI_PROVIDER_API_URL` | No | Provider base URL. | — |
 | `AI_PROVIDER_API_KEY` | No | Provider API key. | — |
+| `OPENCODE_SESSION_ID` | No | Stable session ID sent in the `x-opencode-session` header when using `opencode` (OpenCode Go requires it on every request). Random UUID per startup if unset. | Random UUID |
 | `DATABASE_URL` | No | SQLite file path. | `./data/navi.db` |
 | `MEMORY_DIR` | No | Persistent memory directory. | `./data/memory` |
 | `COMPACTION_THRESHOLD` | No | Message compaction threshold. | `30` |

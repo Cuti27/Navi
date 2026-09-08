@@ -36,7 +36,11 @@ export function createProviderFactory(name: ProviderName, apiKey: string): AIPro
         case PROVIDER_OPENAI:
             return new OpenAIProvider(apiKey)
         case PROVIDER_OPENCODE:
-            return new OpencodeProvider(apiKey, process.env.AI_PROVIDER_API_URL)
+            return new OpencodeProvider(
+                apiKey,
+                process.env.AI_PROVIDER_API_URL,
+                process.env.OPENCODE_SESSION_ID
+            )
         default:
             throw new Error(`Unsupported provider: ${name}`)
     }

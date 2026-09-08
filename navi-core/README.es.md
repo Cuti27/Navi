@@ -71,6 +71,7 @@ cp .env.example .env
 | `AI_PROVIDER` | No | Proveedor de IA: `openai` u `opencode`. | `openai` |
 | `AI_PROVIDER_API_URL` | No | URL base del proveedor. | — |
 | `AI_PROVIDER_API_KEY` | No | API key del proveedor. | — |
+| `OPENCODE_SESSION_ID` | No | ID de sesión estable enviado en el header `x-opencode-session` al usar `opencode` (OpenCode Go lo exige en cada petición). UUID aleatorio por arranque si no se define. | UUID aleatorio |
 | `DATABASE_URL` | No | Ruta del archivo SQLite. | `./data/navi.db` |
 | `MEMORY_DIR` | No | Directorio de memoria persistente. | `./data/memory` |
 | `COMPACTION_THRESHOLD` | No | Umbral de compactación de mensajes. | `30` |

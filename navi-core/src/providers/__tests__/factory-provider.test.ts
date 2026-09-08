@@ -42,4 +42,12 @@ describe("createProviderFromEnv", () => {
     vi.stubEnv("AI_PROVIDER_API_KEY", "")
     expect(() => createProviderFromEnv()).toThrow("AI_PROVIDER_API_KEY is required")
   })
+
+  it("creates an OpencodeProvider from env vars", () => {
+    vi.stubEnv("AI_PROVIDER", "opencode")
+    vi.stubEnv("AI_PROVIDER_API_URL", "https://opencode.example.com")
+    vi.stubEnv("OPENCODE_SESSION_ID", "env-session")
+    const provider = createProviderFromEnv()
+    expect(provider.name).toBe("opencode")
+  })
 })

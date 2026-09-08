@@ -7,8 +7,8 @@ export class OpenAIProvider implements AIProvider {
     readonly name: ProviderName = PROVIDER_OPENAI
     private readonly client: OpenAIProviderConfig
 
-    constructor(apiKey: string, baseUrl?: string) {
-        this.client = createOpenAI({ apiKey, baseURL: baseUrl })
+    constructor(apiKey: string, baseUrl?: string, headers?: Record<string, string>) {
+        this.client = createOpenAI({ apiKey, baseURL: baseUrl, headers })
     }
 
     getModel(modelId: string): LanguageModel {
