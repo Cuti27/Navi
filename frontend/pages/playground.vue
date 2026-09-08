@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import NaviFace from '@/components/navi/NaviFace.vue'
+import NaviFaceV2 from '@/components/navi/NaviFaceV2.vue'
 import type { NaviFaceState } from '@/components/navi/NaviFace.vue'
+
+type AvatarVersion = 'v1' | 'v2'
 
 const states: NaviFaceState[] = [
   'idle',
@@ -12,7 +15,9 @@ const states: NaviFaceState[] = [
 ]
 
 const currentState = ref<NaviFaceState>('idle')
+const version = ref<AvatarVersion>('v2')
 const withBackground = ref(true)
+const decorations = ref(true)
 const waveKey = ref(0)
 
 function setState(s: NaviFaceState) {
@@ -28,11 +33,34 @@ function triggerWave() {
   <div class="flex flex-col items-center gap-8 p-8 pt-safe pb-safe min-h-dvh bg-background text-foreground">
     <h1 class="text-xl font-semibold tracking-tight">NaviFace Playground</h1>
 
+    <div class="flex gap-2">
+      <button
+        v-for="v in (['v1', 'v2'] as AvatarVersion[])"
+        :key="v"
+        class="rounded-lg px-4 py-1.5 text-sm font-medium transition-colors"
+        :class="
+          version === v
+            ? 'bg-foreground text-background'
+            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+        "
+        @click="version = v"
+      >
+        {{ v }}
+      </button>
+    </div>
+
     <div class="w-80">
       <NaviFace
+        v-if="version === 'v1'"
         :key="`face-${waveKey}`"
         :state="currentState"
         :with-background="withBackground"
+      />
+      <NaviFaceV2
+        v-else
+        :state="currentState"
+        :with-background="withBackground"
+        :decorations="decorations"
       />
     </div>
 
@@ -56,6 +84,10 @@ function triggerWave() {
       <label class="flex items-center gap-2 text-sm text-neutral-400">
         <input v-model="withBackground" type="checkbox" class="rounded" />
         Background
+      </label>
+      <label v-if="version === 'v2'" class="flex items-center gap-2 text-sm text-neutral-400">
+        <input v-model="decorations" type="checkbox" class="rounded" />
+        Decoraciones
       </label>
     </div>
 

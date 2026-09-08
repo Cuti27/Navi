@@ -10,9 +10,9 @@ test.describe('playground page', () => {
     })
   })
 
-  test('renders NaviFace and state buttons', async ({ page }) => {
+  test('renders NaviFaceV2 avatar by default', async ({ page }) => {
     await page.goto('/playground')
-    await expect(page.locator('svg.navi-face')).toBeVisible()
+    await expect(page.locator('span.bs-avatar svg')).toBeVisible()
     await expect(page.locator('text=idle')).toBeVisible()
     await expect(page.locator('text=thinking')).toBeVisible()
     await expect(page.locator('text=tool-calling')).toBeVisible()
@@ -21,8 +21,15 @@ test.describe('playground page', () => {
     await expect(page.locator('text=compacting')).toBeVisible()
   })
 
-  test('switches state on button click', async ({ page }) => {
+  test('renders NaviFace state buttons', async ({ page }) => {
     await page.goto('/playground')
+    await page.click('button:has-text("v1")')
+    await expect(page.locator('svg.navi-face')).toBeVisible()
+  })
+
+  test('switches NaviFace state on button click', async ({ page }) => {
+    await page.goto('/playground')
+    await page.click('button:has-text("v1")')
     const face = page.locator('svg.navi-face')
 
     await expect(face).toHaveClass(/is-idle/)
@@ -30,5 +37,17 @@ test.describe('playground page', () => {
     await expect(face).toHaveClass(/is-thinking/)
     await page.click('text=error')
     await expect(face).toHaveClass(/is-error/)
+  })
+
+  test('switches NaviFaceV2 state on button click', async ({ page }) => {
+    await page.goto('/playground')
+    const avatar = page.locator('span.bs-avatar svg')
+
+    await page.click('text=thinking')
+    await expect(avatar).toBeVisible()
+    await page.click('text=awaiting-approval')
+    await expect(avatar).toBeVisible()
+    await page.click('text=error')
+    await expect(avatar).toBeVisible()
   })
 })

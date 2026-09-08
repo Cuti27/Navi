@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ArrowLeft } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-import NaviFace from '@/components/navi/NaviFace.vue'
+import NaviFaceV2 from '@/components/navi/NaviFaceV2.vue'
 import MessageList from '@/components/chat/MessageList.vue'
 import ChatInput from '@/components/chat/ChatInput.vue'
 import ApprovalCard from '@/components/chat/ApprovalCard.vue'
@@ -83,10 +83,10 @@ watch(sessionId, () => {
       data-testid="chat-navi-column"
       class="hidden md:flex md:w-1/2 md:max-w-[520px] md:flex-none md:h-full md:items-center md:justify-center md:bg-card/30 md:border-r md:border-border md:overflow-hidden"
     >
-      <NaviFace
+      <NaviFaceV2
         :state="agent.state"
         :with-background="false"
-        class="w-4/5 max-w-sm"
+        :size="400"
       />
     </div>
 
@@ -108,10 +108,10 @@ watch(sessionId, () => {
         data-testid="chat-mobile-navi"
         class="shrink-0 h-20 border-b border-border bg-card/40 flex items-center justify-center overflow-hidden min-w-0 md:hidden"
       >
-        <NaviFace
+        <NaviFaceV2
           :state="agent.state"
-          class="h-full w-auto max-w-full"
           :with-background="false"
+          :size="64"
         />
       </div>
 

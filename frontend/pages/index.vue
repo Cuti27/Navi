@@ -2,7 +2,7 @@
 import { Plus } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import NaviFace from '@/components/navi/NaviFace.vue'
+import NaviFaceV2 from '@/components/navi/NaviFaceV2.vue'
 import SessionList from '@/components/session/SessionList.vue'
 import type { Session } from '~/lib/types'
 
@@ -48,10 +48,10 @@ onMounted(() => {
       data-testid="home-navi-column"
       class="relative flex-[0.5] min-h-0 bg-background flex items-center justify-center overflow-hidden md:w-1/2 md:max-w-[520px] md:flex-none md:h-full md:bg-card/30 md:border-r md:border-border"
     >
-      <NaviFace
+      <NaviFaceV2
         :state="agent.state"
         :with-background="false"
-        class="w-3/5 max-w-xs max-h-full md:w-4/5 md:max-w-sm"
+        :size="320"
       />
     </div>
 
